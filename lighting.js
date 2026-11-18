@@ -118,7 +118,13 @@ function build(){
  }
  refresh();paint();
 }
-const portrait=matchMedia('(max-width: 760px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)');
+// Select the footage once per device. Rotation and window size only affect layout.
+function usesMobileFootage(nav){
+ if(nav.userAgentData?.mobile)return true;
+ return /Android|iPhone|iPod|iPad|Windows Phone|Mobile/i.test(nav.userAgent) ||
+        (nav.platform==='MacIntel' && nav.maxTouchPoints>1);
+}
+const mobileTour=usesMobileFootage(navigator);
 const range=()=>Math.max(1,scroller.scrollHeight-scroller.clientHeight);
 function seek(){if(!movie.seeking&&movie.readyState>=2&&Math.abs(movie.currentTime-frame/FPS)>.018)movie.currentTime=frame/FPS;}
 function setFrame(f){
@@ -134,13 +140,12 @@ function syncScroll(){
 scroller.addEventListener('scroll',syncScroll,{passive:true});
 function selectVideo(){
 
- document.documentElement.classList.toggle('portrait',portrait.matches);
- movie.poster=portrait.matches?'mobile-front.jpg':'storefront.jpg';
- movie.src=portrait.matches?'mobile-tour.mp4':'walkthrough.mp4';
- canvas.width=portrait.matches?720:1280;canvas.height=portrait.matches?1280:720;
+ document.documentElement.classList.toggle('mobile-tour',mobileTour);
+ movie.poster=mobileTour?'mobile-front.jpg':'storefront.jpg';
+ movie.src=mobileTour?'mobile-tour.mp4':'walkthrough.mp4';
+ canvas.width=mobileTour?720:1280;canvas.height=mobileTour?1280:720;
  setFrame(frame);
 }
-portrait.addEventListener('change',selectVideo);
 movie.addEventListener('loadeddata',seek);movie.addEventListener('seeked',seek);
 movie.onerror=()=>$('hint').textContent='The walkthrough could not load. Refresh to retry.';
 $('timeline').oninput=e=>jump(Number(e.target.value));
@@ -157,5 +162,6 @@ let taps=0,timer;
 $('lights').onclick=()=>{clearTimeout(timer);if(++taps===3){taps=0;panel.showModal();build()}else timer=setTimeout(()=>taps=0,1400)};
 $('done').onclick=()=>panel.close();panel.onclose=()=>$('lights').focus({preventScroll:true});
 build();selectVideo();
+
 
 
