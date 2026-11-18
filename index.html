@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Malik’s Barbers</title><meta name="theme-color" content="#13130f">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#13130f;color:#fffcf4;font:16px/1.4 "DM Sans",Arial,sans-serif}
+main{height:520vh}
+.stage{position:sticky;top:0;height:100vh;height:100dvh;overflow:hidden;isolation:isolate;background:#171611}
+.ambient{position:absolute;inset:-9%;background:center/cover url(entrance.jpg);filter:blur(32px) brightness(.54)}
+.scene{position:absolute;left:50%;top:0;transform:translateX(-50%);width:min(100%,186dvh);aspect-ratio:16/9;mask-image:linear-gradient(#000 78%,transparent 100%)}
+video,.still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.still{background:center/cover url(entrance.jpg)}
+.stage:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#10100ef2,transparent 25%);pointer-events:none}
+.card{position:absolute;z-index:1;top:14%;width:clamp(240px,24vw,350px);padding:clamp(16px,2vw,29px);border:1px solid #fff2;border-radius:15px;background:linear-gradient(130deg,#29271fbf,#16171088);backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);box-shadow:0 12px 48px #0003;opacity:0;visibility:hidden}
+#cuts{left:7%}#extras{right:7%}
+h2{font:normal clamp(28px,3.3vw,48px)/1 Georgia,serif;margin:0 0 .35em;letter-spacing:-.04em}
+dl{margin:0}dl div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:.46em 0;border-bottom:1px solid #fff2}dd{margin:0;font-variant-numeric:tabular-nums}small{display:block;margin-top:.8em;color:#f0e2cd;font-size:11px;letter-spacing:.05em}
+footer{position:absolute;z-index:2;inset:auto 5% max(4%,env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:1rem}
+button{color:inherit;font:inherit;background:none;border:0;cursor:pointer}
+#enter{border:1px solid #fff6;border-radius:32px;padding:10px 18px;background:#16171166;backdrop-filter:blur(9px)}
+nav{display:flex;gap:.8rem}nav button{font-size:13px;padding:12px 2px;color:#d3cfc5;border-bottom:2px solid transparent}nav button[aria-current]{color:white;border-color:#d6b783}
+button:focus-visible{outline:2px solid white;outline-offset:3px}
+h1{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+@media(max-aspect-ratio:1/1){.scene{top:15%;width:100%;mask-image:linear-gradient(transparent,#000 9%,#000 83%,transparent)}.card{top:calc(15% + 47vw);width:min(78%,350px)}#cuts{left:5%}#extras{right:5%}footer{flex-direction:column;gap:4px}.stage:after{background:linear-gradient(0deg,#11110feb,transparent 45%)}}
+@media(max-height:530px){.card{top:5%;padding:12px 18px}h2{font-size:25px}dl div{padding:.2em 0}footer{bottom:2%}}
+</style></head>
+<body><main><div class="stage"><h1>Malik’s Barbers</h1>
+<div class="ambient" aria-hidden="true"></div><div class="scene"><div class="still"></div><video muted playsinline preload="auto" poster="entrance.jpg" src="tour.mp4" aria-label="Walk through Malik’s Barbers from the entrance to the chairs and colour station"></video></div>
+<section id="cuts" class="card" aria-hidden="true"><h2>Haircuts</h2><dl><div><dt>Classic cut</dt><dd>€22</dd></div><div><dt>Skin fade</dt><dd>€27</dd></div><div><dt>Scissor cut</dt><dd>€28</dd></div><div><dt>Cut &amp; beard</dt><dd>€35</dd></div></dl><small>Sample prices</small></section>
+<section id="extras" class="card" aria-hidden="true"><h2>Extras</h2><dl><div><dt>Hair colour</dt><dd>from €40</dd></div><div><dt>Grey blending</dt><dd>€25</dd></div><div><dt>Beard sculpt</dt><dd>€15</dd></div><div><dt>Hot towel finish</dt><dd>€8</dd></div></dl><small>Sample prices</small></section>
+<footer><button id="enter">Scroll to enter ↓</button><nav aria-label="Tour stops"><button data-stop="0">Entrance</button><button data-stop=".39">Haircuts</button><button data-stop="1">Extras</button></nav></footer>
+</div></main>
+<script>
+const video=document.querySelector('video'), ambient=document.querySelector('.ambient'), still=document.querySelector('.still');
+const stops=[...document.querySelectorAll('[data-stop]')],enter=document.querySelector('#enter');
+const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+const clamp=n=>Math.max(0,Math.min(1,n));
+const range=()=>Math.max(1,document.documentElement.scrollHeight-innerHeight);
+let progress=0,frame=0,backdrop='';
+function panel(id,alpha){
+ const card=document.getElementById(id);
+ card.style.opacity=alpha;
+ card.style.visibility=alpha>0?'visible':'hidden';
+ card.setAttribute('aria-hidden',String(alpha<.5));
+}
+function paint(p){
+ panel('cuts',clamp((p-.23)/.06)*clamp((.56-p)/.08));
+ panel('extras',clamp((p-.63)/.09));
+ const stop=p<.23?0:p<.6?1:2;
+ const pic=['entrance.jpg','cuts.jpg','extras.jpg'][stop];
+ if(pic!==backdrop){ambient.style.backgroundImage=still.style.backgroundImage='url('+pic+')';backdrop=pic;}
+ stops.forEach((button,i)=>{if(stop===i)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current')});
+ enter.textContent=stop===2?'Back to entrance ↑':stop===1?'Explore extras ↓':'Scroll to enter ↓';
+}
+function sync(){
+ frame=0;progress=clamp(scrollY/range());
+ const useVideo=!reduced.matches&&!video.error;
+ video.hidden=!useVideo;
+ if(!useVideo||video.readyState<2){paint(progress);return;}
+ const end=video.duration-1/24,target=progress*end;
+ if(!video.seeking&&Math.abs(video.currentTime-target)>.018)video.currentTime=target;
+ if(!video.seeking)paint(video.currentTime/end);
+}
+function queue(){if(!frame)frame=requestAnimationFrame(sync)}
+function go(p){scrollTo({top:p*range(),behavior:reduced.matches?'instant':'smooth'})}
+stops.forEach(button=>button.onclick=()=>go(Number(button.dataset.stop)));
+enter.onclick=()=>go(progress<.23?.39:progress<.6?1:0);
+video.addEventListener('seeked',()=>{paint(video.currentTime/(video.duration-1/24));queue()});
+for(const event of ['loadeddata','canplay','error'])video.addEventListener(event,queue);
+addEventListener('scroll',queue,{passive:true});addEventListener('resize',queue);reduced.addEventListener('change',queue);sync();
+</script></body></html>
