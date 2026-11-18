@@ -60,17 +60,27 @@ function buildRenderer(){
  };
 }
 let render;
+const wash=document.createElement('div');
+wash.setAttribute('aria-hidden','true');
+wash.style.cssText='position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen';
+canvas.after(wash);
 function redraw(){
  const values=sliders.map(({input})=>Number(input.value));
  sliders.forEach(({output},i)=>output.value=values[i]+(i===4?'°':'%'));
  const adjusted=values[0]||values[1]||values[2]!==100||values[3];
- canvas.hidden=true;movie.style.filter='';
+ canvas.hidden=true;movie.style.filter='';wash.style.background='';
  if(!adjusted||movie.readyState<2)return;
  try{
   if(render===undefined)render=buildRenderer();
   if(render){render(values);canvas.hidden=false;return;}
  }catch{render=null;}
- movie.style.filter='brightness('+Math.pow(2,values[0]/100)+') saturate('+values[2]+'%) sepia('+Math.max(0,values[1]/2)+'%)';
+ const [ev,warmth,saturation,intensity,angle,width]=values;
+ movie.style.filter='brightness('+Math.pow(2,ev/100)+') saturate('+saturation+'%)';
+ const tint=warmth>=0?'255,145,50':'65,150,255';
+ const colour='rgba('+tint+','+Math.abs(warmth)/280+')';
+ const radius=8+width*.42;
+ const glow='rgba(255,218,163,'+(intensity/145)+')';
+ wash.style.background='conic-gradient(from '+(180-angle-radius)+'deg at 50% -18%,transparent 0deg,'+glow+' '+radius+'deg, transparent '+(2*radius)+'deg),linear-gradient('+colour+','+colour+')';
 }
 canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();render=null;redraw()});
 canvas.addEventListener('webglcontextrestored',()=>{render=undefined;redraw()});
