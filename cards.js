@@ -25,7 +25,44 @@
  const nav=$('tourNav'), detail=$('scenePanel'), line=$('leader').firstElementChild;
  const scene=nav.parentElement, reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let active=null, scrollArmed=false, hold=0, entrance=null, leaving=false, trace=0;
+ const layoutKey='maliks-expanded-positions-'+(mobileTour?'mobile':'desktop');
+ let positions={},gesture=null,ignoreTap=false,trip=0,tick=0;
+ try{positions=JSON.parse(localStorage.getItem(layoutKey))||{}}catch{}
+ function stopTrip(){
+  trip++;cancelAnimationFrame(tick);
+  if(movie.dataset.guided){movie.pause();delete movie.dataset.guided}
+ }
+ function visit(action){
+  stopTrip();
+  const id=trip, start=frame, end=stops[action];
+  const finish=()=>{stopTrip();jump(end);openPanel(action,false)};
+  if(start===end||reduced.matches){finish();return}
+  const scrub=()=>{
+   let since=performance.now();
+   function step(now){
+    if(id!==trip)return;
+    const t=Math.min(1,(now-since)*FPS/(Math.abs(end-start)*1000));
+    if(t===1){finish();return}
+    jump(Math.round(start+(end-start)*t));tick=requestAnimationFrame(step);
+   }
+   tick=requestAnimationFrame(step);
+  };
+  if(end<start||movie.readyState<2){scrub();return}
+  movie.dataset.guided='yes';movie.currentTime=start/FPS;
+  movie.play().then(()=>{
+   if(id!==trip)return;
+   function follow(){
+    if(id!==trip)return;
+    const next=Math.round(movie.currentTime*FPS);
+    if(next>=end||movie.ended){finish();return}
+    if(next!==frame)jump(next);
+    tick=requestAnimationFrame(follow);
+   }
+   follow();
+  }).catch(()=>{if(id===trip){delete movie.dataset.guided;scrub()}});
+ }
  function clearPanel(){
+  if(gesture){clearTimeout(gesture.timer);gesture=null;detail.classList.remove('moving')}
   clearTimeout(hold);hold=0;active=null;scrollArmed=false;leaving=false;
   entrance?.cancel();detail.hidden=true;line.style.display='none';render();
  }
@@ -34,9 +71,11 @@
   const progress=Math.max(0,Math.min(1,(frame-85)/(stops[active]-85||1)));
   const end=active==='hours'?50:active==='prices'?18:28;
   const x=active==='hours'?50:(active==='prices'?94:6)*(1-progress)+end*progress;
+  const saved=positions[active];
+  const halfHeight=detail.offsetHeight/scene.clientHeight*50;
   const half=detail.offsetWidth/scene.clientWidth*50+1;
-  detail.style.left=Math.min(100-half,Math.max(half,x))+'%';
-  detail.style.top=(active==='hours'?54:50)+'%';
+  detail.style.left=Math.min(100-half,Math.max(half,saved?.x??x))+'%';
+  detail.style.top=Math.min(100-halfHeight,Math.max(halfHeight,saved?.y??(active==='hours'?54:50)))+'%';
  }
  function draw(){
   cancelAnimationFrame(trace);
@@ -49,21 +88,24 @@
   line.style.display='';trace=requestAnimationFrame(draw);
  }
  function openPanel(action,navigate){
+  stopTrip();
   if(active===action){clearPanel();return}
+  if(navigate){clearPanel();visit(action);return}
   clearTimeout(hold);hold=0;entrance?.cancel();leaving=false;active=action;
   const content=$(action).cloneNode(true);content.removeAttribute('id');
   detail.replaceChildren(content);detail.hidden=false;detail.dataset.action=action;detail.setAttribute('aria-label',labels[action]);
-  detail.onclick=e=>{if(!e.target.closest('a'))clearPanel()};
+  detail.title='Press and hold to move';
   markToday();place();
   const from=action==='hours'?'translateY(-35%)':action==='contact'?'translateX(-40%)':'translateX(40%)';
   entrance=detail.animate([{opacity:0,transform:from},{opacity:1,transform:'none'}],{duration:reduced.matches?0:650,easing:'ease-out'});
   scrollArmed=false;
-  if(navigate)jump(stops[action]);
+
   render();draw();
 
  }
  for(const button of nav.children){
   button.onclick=()=>{
+   stopTrip();
    if(button.dataset.view==='hours'){clearPanel();scroller.scrollTo({top:range()*85/LAST,behavior:reduced.matches?'instant':'smooth'})}
    else openPanel(button.dataset.view,true);
   };
@@ -77,7 +119,7 @@
   },2000);
  }
  // A click can move the tour programmatically. Only visitor-initiated scrolling dismisses a panel.
- function armScroll(){if(active)scrollArmed=true}
+ function armScroll(){if(gesture?.moving)return;stopTrip();if(active)scrollArmed=true}
  scroller.addEventListener('wheel',armScroll,{passive:true});
  scroller.addEventListener('touchmove',armScroll,{passive:true});
  scroller.addEventListener('keydown',e=>{
@@ -86,6 +128,49 @@
  scroller.addEventListener('scroll',dismissAfterScroll,{capture:true,passive:true});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active)clearPanel()});
 
+ detail.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||e.button!==0||e.target.closest('a'))return;
+  ignoreTap=false;
+  const g={id:e.pointerId,x:e.clientX,y:e.clientY,scroll:detail.scrollTop,moving:false};
+  gesture=g;
+  g.timer=setTimeout(()=>{
+   if(gesture!==g)return;
+   clearTimeout(hold);hold=0;scrollArmed=false;leaving=false;entrance?.cancel();
+   g.moving=true;ignoreTap=true;detail.classList.add('moving');
+   const rect=detail.getBoundingClientRect();
+   g.dx=g.x-rect.left-rect.width/2;g.dy=g.y-rect.top-rect.height/2;
+   detail.setPointerCapture(g.id);
+  },450);
+ });
+ detail.addEventListener('pointermove',e=>{
+  const g=gesture;if(!g||g.id!==e.pointerId)return;
+  if(!g.moving){
+   if(Math.hypot(e.clientX-g.x,e.clientY-g.y)>7){
+    clearTimeout(g.timer);ignoreTap=true;
+    if(e.pointerType==='touch'){scrollArmed=true;detail.scrollTop=g.scroll+g.y-e.clientY}
+   }
+   return;
+  }
+  const rect=scene.getBoundingClientRect();
+  positions[active]={x:100*(e.clientX-rect.left-g.dx)/rect.width,y:100*(e.clientY-rect.top-g.dy)/rect.height};
+  place();
+ });
+ function release(e){
+  const g=gesture;if(!g||g.id!==e.pointerId)return;
+  clearTimeout(g.timer);gesture=null;
+  if(g.moving){
+   detail.classList.remove('moving');
+   positions[active]={x:parseFloat(detail.style.left),y:parseFloat(detail.style.top)};
+   try{localStorage.setItem(layoutKey,JSON.stringify(positions))}catch{}
+  }
+ }
+ window.addEventListener('pointerup',release);
+ window.addEventListener('pointercancel',release);
+ detail.oncontextmenu=e=>e.preventDefault();
+ detail.onclick=e=>{
+  if(ignoreTap){ignoreTap=false;return}
+  if(!e.target.closest('a'))clearPanel();
+ };
  function markToday(){
   const day=new Intl.DateTimeFormat('en-IE',{weekday:'long',timeZone:'Europe/Dublin'}).format(new Date());
   for(const row of document.querySelectorAll('[data-day]')){

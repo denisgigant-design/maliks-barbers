@@ -1,7 +1,7 @@
 .stage{height:100svh;background:linear-gradient(transparent 85%,#091410)}
 .shop-details{display:grid;gap:clamp(20px,4vw,46px);justify-items:center;padding:clamp(38px,7vw,96px) 16px;background:linear-gradient(#091410,transparent 18%,#050c09),radial-gradient(ellipse at 85% 45%,#264939,#091410 74%);position:relative;isolation:isolate}
 .shop-details::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(#091410,transparent 20%,#05100c),center/cover url(storefront.jpg);opacity:.16}
-.shop-card{width:min(100%,740px);position:relative;padding:clamp(24px,5vw,56px);background:linear-gradient(125deg,#193a2dd4,#091713d9 78%);border:1px solid #c4a56462;border-radius:26px;color:#fcf8ee;backdrop-filter:blur(20px);box-shadow:0 16px 40px #0003;overflow:hidden}
+.shop-card{width:min(100%,740px);position:relative;padding:clamp(24px,5vw,56px);background:linear-gradient(125deg,#292e2aaa,#151715ae 78%);border:1px solid #c4a56462;border-radius:26px;color:#fcf8ee;backdrop-filter:blur(20px);box-shadow:0 16px 40px #0003;overflow:hidden}
 .shop-card::before{content:"";position:absolute;right:0;top:0;height:6px;width:30%;background:repeating-linear-gradient(120deg,#c7ab71 0 8px,transparent 8px 14px);opacity:.8}
 .signature{color:#e4c990;font-size:.72rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase}.signature::before{content:"✂";margin-right:.7em;font-size:1rem}
 .shop-card h2{font:normal clamp(30px,5vw,52px)/1.1 Georgia,serif;letter-spacing:-.035em;margin:.32em 0 .65em}
@@ -36,7 +36,7 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 #cardLayer:not(.editing-cards) button.info-card[data-action=hours]{display:flex;align-items:center;justify-content:center;gap:.2em;white-space:nowrap;text-transform:none;font:800 clamp(25px,3.7cqw,62px)/1 Arial,sans-serif;color:#fffaf2}
 #cardLayer:not(.editing-cards) button.info-card[data-action=hours] em{font:italic bold 1.08em/1 Georgia,serif;color:#ffd88c}
 #cardLayer:not(.editing-cards) button.info-card[data-action=hours]::after{display:none}
-#scenePanel{position:absolute;z-index:5;translate:-50% -50%;width:min(31%,47vh);aspect-ratio:1;max-height:78%;overflow:auto;overscroll-behavior:contain;padding:clamp(12px,1.6vw,26px);border:1px solid #f5ecc978;border-radius:19%;background:linear-gradient(140deg,#302e2b60,#100f0e85);backdrop-filter:blur(9px);text-shadow:0 1px 4px #000;box-shadow:0 8px 25px #0004;scrollbar-width:thin}
+#scenePanel{position:absolute;z-index:5;translate:-50% -50%;width:min(31%,47vh);aspect-ratio:1;max-height:78%;overflow:auto;overscroll-behavior:contain;padding:clamp(12px,1.6vw,26px);border:1px solid #f5ecc978;border-radius:19%;background:linear-gradient(140deg,#302e2c4d,#1110106a);backdrop-filter:blur(9px);text-shadow:0 1px 4px #000;box-shadow:0 8px 25px #0004;scrollbar-width:thin}
 #scenePanel[hidden]{display:none}
 #scenePanel .shop-card{width:100%;padding:0;background:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none}
 #scenePanel .signature,#scenePanel .shop-card::before{display:none}#scenePanel h2{font:italic 1.45em Georgia,serif;margin:0 0 .45em;padding-right:0}
@@ -45,3 +45,5 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 .mobile-tour #scenePanel{width:80%;font-size:14px}.scene{mask-image:none}
 
 
+
+#scenePanel{touch-action:none;user-select:none;-webkit-touch-callout:none}#scenePanel.moving{cursor:grabbing;outline:1px solid #efd49e}
