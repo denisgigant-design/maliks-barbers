@@ -55,8 +55,8 @@ function renderer(){
   if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));gl.attachShader(program,s);
  }
  shader(gl.VERTEX_SHADER,'attribute vec2 p; varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}');
- shader(gl.FRAGMENT_SHADER,`precision mediump float;varying vec2 uv;uniform vec4 beam;uniform vec3 tint;
- void main(){vec2 d=(vec2(uv.x,1.-uv.y)-beam.xy)*vec2(1.77778,1.);vec2 axis=vec2(sin(beam.z),cos(beam.z));
+ shader(gl.FRAGMENT_SHADER,`precision mediump float;varying vec2 uv;uniform float aspect;uniform vec4 beam;uniform vec3 tint;
+ void main(){vec2 d=(vec2(uv.x,1.-uv.y)-beam.xy)*vec2(aspect,1.);vec2 axis=vec2(sin(beam.z),cos(beam.z));
  float cone=smoothstep(cos(beam.w),cos(beam.w*.26),dot(d/max(.0001,length(d)),axis));
  gl_FragColor=vec4(tint*cone*exp(-length(d)*.65),1.);}`);
  gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))return null;
@@ -65,7 +65,8 @@ function renderer(){
  const p=gl.getAttribLocation(program,'p');gl.enableVertexAttribArray(p);gl.vertexAttribPointer(p,2,gl.FLOAT,false,0,0);
  const beam=gl.getUniformLocation(program,'beam'),tint=gl.getUniformLocation(program,'tint');
  gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);
- return spots=>{gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);
+ const aspect=gl.getUniformLocation(program,"aspect");
+ return spots=>{gl.viewport(0,0,canvas.width,canvas.height);gl.uniform1f(aspect,canvas.width/canvas.height);gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);
  for(const s of spots){gl.uniform4f(beam,s.x/100,s.y/100,s.angle*Math.PI/180,(5+s.width*.45)*Math.PI/180);
  gl.uniform3fv(tint,rgb(s.color).map(v=>v/255*s.intensity/155));gl.drawArrays(gl.TRIANGLES,0,3);}};
 }
@@ -117,12 +118,71 @@ function build(){
  }
  refresh();paint();
 }
-const range=()=>scroller.scrollHeight-scroller.clientHeight;
+const portrait=matchMedia('(max-width: 760px) and (orientation: portrait), (pointer: coarse) and (orientation: portrait)');
+const buttons=[...document.querySelectorAll('[data-anchor]')];
+const timestamps=()=>portrait.matches?[88,134,239]:[89,133,239];
+let motion=0, destination=null;
 function seek(){if(!movie.seeking&&movie.readyState>=2&&Math.abs(movie.currentTime-frame/FPS)>.018)movie.currentTime=frame/FPS;}
-function setFrame(f){frame=Math.max(0,Math.min(LAST,f));seek();if(panel.open)refresh();paint();$('hint').textContent=frame===LAST?'Scroll back ↑':'Scroll to explore ↓'}
-function jump(f){scroller.scrollTop=f/LAST*range();setFrame(f)}
-let pending=false;
-scroller.onscroll=()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;setFrame(Math.round(scroller.scrollTop/range()*LAST))})}};
+function setFrame(f){
+ frame=Math.max(0,Math.min(LAST,f));seek();if(panel.open)refresh();paint();
+ const times=timestamps();
+ buttons.forEach((b,i)=>{if(frame===times[i])b.setAttribute('aria-current','step');else b.removeAttribute('aria-current')});
+ $('hint').textContent=frame===LAST?'Scroll back ↑':'Scroll to explore ↓';
+}
+function cancelMotion(){cancelAnimationFrame(motion);motion=0;destination=null;}
+function jump(f){cancelMotion();setFrame(f);}
+function go(index){
+ if(index<0||index>=buttons.length||panel.open)return;
+ cancelMotion();const target=timestamps()[index],start=frame,begin=performance.now();destination=index;
+ const length=matchMedia('(prefers-reduced-motion: reduce)').matches?0:Math.min(2400,Math.max(450,Math.abs(target-start)*24));
+ function tick(now){
+  const t=length?Math.min(1,(now-begin)/length):1;
+  setFrame(Math.round(start+(target-start)*t*t*(3-2*t)));
+  if(t<1){motion=requestAnimationFrame(tick);return;}
+  motion=0;destination=null;
+  scroller.dispatchEvent(new CustomEvent('touranchor',{bubbles:true,detail:{anchor:buttons[index].dataset.anchor,seconds:target/FPS}}));
+ }
+ motion=requestAnimationFrame(tick);
+}
+function step(direction){
+ const times=timestamps();
+ if(destination!==null){go(destination+direction);return;}
+ const i=direction>0?times.findIndex(f=>f>frame):times.findLastIndex(f=>f<frame);
+ go(i);
+}
+buttons.forEach((b,i)=>b.onclick=()=>go(i));
+let wheelTimer,latched=false,delta=0;
+scroller.addEventListener('wheel',e=>{
+ if(panel.open||e.ctrlKey||Math.abs(e.deltaX)>Math.abs(e.deltaY))return;
+ e.preventDefault();clearTimeout(wheelTimer);
+ wheelTimer=setTimeout(()=>{latched=false;delta=0},190);
+ delta+=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?600:1);
+ if(!latched&&Math.abs(delta)>=18){latched=true;step(Math.sign(delta))}
+},{passive:false});
+let origin=null;
+scroller.addEventListener('touchstart',e=>{
+ origin=e.touches.length===1?[e.touches[0].clientX,e.touches[0].clientY]:null;
+},{passive:true});
+scroller.addEventListener('touchcancel',()=>origin=null);
+scroller.addEventListener('touchend',e=>{
+ if(!origin||panel.open)return;
+ const dx=e.changedTouches[0].clientX-origin[0],dy=origin[1]-e.changedTouches[0].clientY;origin=null;
+ if(Math.abs(dy)>35&&Math.abs(dy)>Math.abs(dx))step(Math.sign(dy));
+},{passive:true});
+document.addEventListener('keydown',e=>{
+ if(panel.open||e.altKey||e.ctrlKey||e.metaKey)return;
+ const direction={ArrowDown:1,PageDown:1,ArrowUp:-1,PageUp:-1}[e.key];
+ if(direction){e.preventDefault();if(!e.repeat)step(direction)}
+});
+function selectVideo(){
+ const active=buttons.findIndex(b=>b.hasAttribute('aria-current'));
+ cancelMotion();document.documentElement.classList.toggle('portrait',portrait.matches);
+ movie.poster=portrait.matches?'mobile-front.jpg':'storefront.jpg';
+ movie.src=portrait.matches?'mobile-tour.mp4':'walkthrough.mp4';
+ canvas.width=portrait.matches?720:1280;canvas.height=portrait.matches?1280:720;
+ if(active>=0)frame=timestamps()[active];setFrame(frame);
+}
+portrait.addEventListener('change',selectVideo);
 movie.addEventListener('loadeddata',seek);movie.addEventListener('seeked',seek);
 movie.onerror=()=>$('hint').textContent='The walkthrough could not load. Refresh to retry.';
 $('timeline').oninput=e=>jump(Number(e.target.value));
@@ -136,6 +196,7 @@ $('removeLight').onclick=()=>{if(!selected)return;model.tracks.splice(selected,1
 $('reset').onclick=()=>{if(confirm('Reset all lights and keyframes on this device?')){model=structuredClone(published);selected=0;save();build()}};
 $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(model,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='maliks-lighting-preset.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)};
 let taps=0,timer;
-$('lights').onclick=()=>{clearTimeout(timer);if(++taps===3){taps=0;panel.showModal();build()}else timer=setTimeout(()=>taps=0,1400)};
+$('lights').onclick=()=>{clearTimeout(timer);if(++taps===3){taps=0;cancelMotion();panel.showModal();build()}else timer=setTimeout(()=>taps=0,1400)};
 $('done').onclick=()=>panel.close();panel.onclose=()=>$('lights').focus({preventScroll:true});
-build();
+build();selectVideo();
+
