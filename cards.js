@@ -2,9 +2,39 @@
  const editor=$('cardsPanel'), layer=$('cardLayer'), key='maliks-card-drafts-v1';
  let cards=[],selectedId=null,drag=null;
  try{const saved=JSON.parse(localStorage.getItem(key));if(Array.isArray(saved))cards=saved}catch{}
+ const labels={hours:'Opening hours',prices:'Haircut prices',contact:'Book appointments'};
+ if(!mobileTour){
+  let edited=false;try{edited=!!localStorage.getItem(key+'-edited')}catch{}
+  if(!cards.length && !edited){
+   cards=[['hours',52,105,50],['prices',106,155,16],['contact',156,LAST,82]].map(([action,start,end,x])=>({
+    id:'shop-'+action,action,start,end,x,y:37,size:21,shape:'long',text:''
+   }));
+  }else if(cards.length && !cards.some(c=>c.action)){
+   const [first,...rest]=[...cards].sort((a,b)=>a.start-b.start).slice(0,3);
+   first.action='hours';
+   rest.sort((a,b)=>a.x-b.x).forEach((c,i)=>c.action=i?'contact':'prices');
+  }
+ }
+ const popup=$('shopDialog');
+ function markToday(){
+  const day=new Intl.DateTimeFormat('en-IE',{weekday:'long',timeZone:'Europe/Dublin'}).format(new Date());
+  for(const row of document.querySelectorAll('[data-day]')){
+   const active=row.dataset.day===day;
+   row.classList.toggle('today',active);row.querySelector('small').hidden=!active;
+  }
+ }
+ markToday();setInterval(markToday,1000*30);document.addEventListener('visibilitychange',markToday);
+ layer.addEventListener('click',e=>{
+  const button=e.target.closest('button[data-action]');
+  if(!button||editor.open)return;
+  const card=$(button.dataset.action).cloneNode(true);card.removeAttribute('id');
+  $('shopContent').replaceChildren(card);popup.setAttribute('aria-label',button.textContent);popup.showModal();popup.scrollTop=0;markToday();
+ });
+ $('dismissShop').onclick=()=>popup.close();
+ popup.addEventListener('click',e=>{if(e.target===popup)popup.close()});
  const selected=()=>cards.find(c=>c.id===selectedId);
  function save(){
-  try{localStorage.setItem(key,JSON.stringify(cards))}catch{$('cardStatus').textContent='Device storage unavailable. Export your cards to keep them.'}
+  try{localStorage.setItem(key+"-edited","1");localStorage.setItem(key,JSON.stringify(cards))}catch{$('cardStatus').textContent='Device storage unavailable. Export your cards to keep them.'}
  }
  function render(){
   $('cardTime').value=frame;$('cardClock').value=time(frame);
@@ -13,9 +43,9 @@
    if(frame<c.start||frame>c.end)continue;
    seen.add(c.id);
    let node=document.getElementById('cue-'+c.id);
-   if(!node){node=document.createElement('div');node.id='cue-'+c.id;node.dataset.card=c.id;layer.append(node)}
+   if(!node){node=document.createElement(c.action?'button':'div');if(c.action){node.dataset.action=c.action;node.setAttribute('aria-haspopup','dialog')};node.id='cue-'+c.id;node.dataset.card=c.id;layer.append(node)}
    node.className='info-card '+c.shape+(c.id===selectedId?' chosen':'');
-   node.textContent=c.text||(editor.open?'Card '+(cards.indexOf(c)+1):'');
+   node.textContent=labels[c.action]||c.text||(editor.open?'Card '+(cards.indexOf(c)+1):'');
    const ratio=c.shape==='square'?1:2.8;
    const w=Math.min(layer.clientWidth*c.size/100,layer.clientHeight*ratio*.95),h=w/ratio;
    Object.assign(node.style,{width:w+'px',height:h+'px',left:((layer.clientWidth-w)*c.x/100)+'px',top:((layer.clientHeight-h)*c.y/100)+'px'});
@@ -65,3 +95,4 @@
   const a=document.createElement('a');a.href=url;a.download='maliks-cards.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)};
  scroller.addEventListener('tourframe',render);new ResizeObserver(render).observe(layer);render();
 })();
+
