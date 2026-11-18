@@ -128,7 +128,7 @@ const mobileTour=usesMobileFootage(navigator);
 const range=()=>Math.max(1,scroller.scrollHeight-scroller.clientHeight);
 function seek(){if(!movie.seeking&&movie.readyState>=2&&Math.abs(movie.currentTime-frame/FPS)>.018)movie.currentTime=frame/FPS;}
 function setFrame(f){
- frame=Math.max(0,Math.min(LAST,f));seek();if(panel.open)refresh();paint();
+ frame=Math.max(0,Math.min(LAST,f));seek();if(panel.open)refresh();paint();scroller.dispatchEvent(new Event("tourframe"));
  $('hint').textContent=frame===LAST?'Scroll back ↑':'Scroll to explore ↓';
 }
 function jump(f){scroller.scrollTop=f/LAST*range();setFrame(f)}
@@ -162,6 +162,7 @@ let taps=0,timer;
 $('lights').onclick=()=>{clearTimeout(timer);if(++taps===3){taps=0;panel.showModal();build()}else timer=setTimeout(()=>taps=0,1400)};
 $('done').onclick=()=>panel.close();panel.onclose=()=>$('lights').focus({preventScroll:true});
 build();selectVideo();
+
 
 
 
