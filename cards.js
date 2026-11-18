@@ -24,9 +24,9 @@
  const targetFrame=action=>stops[action];
  const nav=$('tourNav'), detail=$('scenePanel'), line=$('leader').firstElementChild;
  const scene=nav.parentElement, reduced=matchMedia('(prefers-reduced-motion: reduce)');
- let active=null, travelling=false, hold=0, entrance=null, leaving=false, trace=0;
+ let active=null, scrollArmed=false, hold=0, entrance=null, leaving=false, trace=0;
  function clearPanel(){
-  clearTimeout(hold);hold=0;active=null;travelling=false;leaving=false;
+  clearTimeout(hold);hold=0;active=null;scrollArmed=false;leaving=false;
   entrance?.cancel();detail.hidden=true;line.style.display='none';render();
  }
  function place(){
@@ -52,14 +52,15 @@
   if(active===action){clearPanel();return}
   clearTimeout(hold);hold=0;entrance?.cancel();leaving=false;active=action;
   const content=$(action).cloneNode(true);content.removeAttribute('id');
-  const close=document.createElement('button');close.className='close-scene';close.textContent='×';close.setAttribute('aria-label','Close details');
-  detail.replaceChildren(close,content);detail.hidden=false;detail.dataset.action=action;detail.setAttribute('aria-label',labels[action]);
+  detail.replaceChildren(content);detail.hidden=false;detail.dataset.action=action;detail.setAttribute('aria-label',labels[action]);
   detail.onclick=e=>{if(!e.target.closest('a'))clearPanel()};
   markToday();place();
   const from=action==='hours'?'translateY(-35%)':action==='contact'?'translateX(-40%)':'translateX(40%)';
   entrance=detail.animate([{opacity:0,transform:from},{opacity:1,transform:'none'}],{duration:reduced.matches?0:650,easing:'ease-out'});
-  travelling=navigate&&frame!==stops[action];render();draw();
-  if(travelling)scroller.scrollTo({top:range()*stops[action]/LAST,behavior:reduced.matches?'instant':'smooth'});
+  scrollArmed=false;
+  if(navigate)jump(stops[action]);
+  render();draw();
+
  }
  for(const button of nav.children){
   button.onclick=()=>{
@@ -68,15 +69,21 @@
   };
  }
  function dismissAfterScroll(){
-  if(!active||travelling||hold||leaving)return;
+  if(!active||!scrollArmed||hold||leaving)return;
   hold=setTimeout(()=>{
    leaving=true;entrance?.cancel();
    entrance=detail.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateX(-45%)'}],{duration:reduced.matches?0:520,fill:'forwards',easing:'ease-in'});
    entrance.onfinish=clearPanel;
-  },1000);
+  },2000);
  }
- scroller.addEventListener('scroll',dismissAfterScroll,{passive:true});
- for(const type of ['wheel','touchstart','pointerdown','keydown'])scroller.addEventListener(type,()=>{travelling=false},{passive:true});
+ // A click can move the tour programmatically. Only visitor-initiated scrolling dismisses a panel.
+ function armScroll(){if(active)scrollArmed=true}
+ scroller.addEventListener('wheel',armScroll,{passive:true});
+ scroller.addEventListener('touchmove',armScroll,{passive:true});
+ scroller.addEventListener('keydown',e=>{
+  if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key))armScroll();
+ });
+ scroller.addEventListener('scroll',dismissAfterScroll,{capture:true,passive:true});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active)clearPanel()});
 
  function markToday(){
@@ -98,7 +105,7 @@
  }
  function render(){
   $('cardTime').value=frame;$('cardClock').value=time(frame);
-  if(travelling&&frame===stops[active])travelling=false;
+
   place();
   if(active&&active!=='hours'){
    const dot=nav.querySelector('[data-view="'+active+'"]');
@@ -113,7 +120,9 @@
   }
   const seen=new Set();
   for(const c of cards){
-   if(frame<c.start||frame>c.end||(!editor.open&&!c.action))continue;
+   const couchTitle=c.action==='hours'&&!editor.open&&!mobileTour;
+   const visible=couchTitle ? frame>=52&&frame<=105 : frame>=c.start&&frame<=c.end;
+   if(!visible||(!editor.open&&!c.action))continue;
    seen.add(c.id);
    let node=document.getElementById('cue-'+c.id);
    if(!node){node=document.createElement(c.action?'button':'div');if(c.action){node.dataset.action=c.action;node.setAttribute('aria-controls','scenePanel')};node.id='cue-'+c.id;node.dataset.card=c.id;layer.append(node)}
@@ -123,7 +132,7 @@
    if(c.action==='hours'&&!editor.open)node.innerHTML='Opening <em>Hours</em>';
    const ratio=c.shape==='square'?1:2.8;
    const w=Math.min(layer.clientWidth*c.size/100,layer.clientHeight*ratio*.95),h=w/ratio;
-   Object.assign(node.style,{width:w+'px',height:h+'px',left:((layer.clientWidth-w)*(!editor.open&&c.action==='prices'?12:c.x)/100)+'px',top:((layer.clientHeight-h)*(!editor.open&&c.action==='hours'&&!mobileTour?54:c.y)/100)+'px'});
+   Object.assign(node.style,{width:w+'px',height:h+'px',left:((layer.clientWidth-w)*(couchTitle?50:!editor.open&&c.action==='prices'?12:c.x)/100)+'px',top:((layer.clientHeight-h)*(couchTitle?48:c.y)/100)+'px'});
   }
   for(const node of [...layer.children])if(!seen.has(node.dataset.card))node.remove();
  }
@@ -170,5 +179,6 @@
   const a=document.createElement('a');a.href=url;a.download='maliks-cards.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)};
  scroller.addEventListener('tourframe',render);new ResizeObserver(render).observe(layer);render();
 })();
+
 
 
