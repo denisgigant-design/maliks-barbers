@@ -29,3 +29,19 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 @media(prefers-reduced-motion:reduce){#tourNav button::after{animation:none}}
 #cardLayer:not(.editing-cards) button.info-card[data-action]{border:0;background:transparent;backdrop-filter:none;color:#fffaf1;font:900 clamp(14px,2.2cqw,31px)/1.04 "Arial Narrow",Arial,sans-serif;letter-spacing:.025em;text-transform:uppercase;text-shadow:0 2px 4px #000,0 0 14px #000,0 0 4px #000;overflow:visible}
 #cardLayer:not(.editing-cards) button.info-card[data-action]::after{content:"";display:block;width:28px;height:2px;margin:6px auto 0;background:#e2c384;box-shadow:0 1px 4px #000}
+
+.pinned-tour{position:sticky;top:0}.pinned-tour .stage{position:relative}.pinned-tour .shop-details{padding-top:0}
+#tourNav button::before{display:none}#tourNav button::after{width:18px;height:18px;background:#fff5;border:1px solid #fff9;backdrop-filter:blur(4px)}
+#tourNav button span{position:absolute;top:85%;white-space:nowrap;font:bold italic clamp(14px,2vw,27px) Georgia,serif;text-shadow:0 1px 5px #000,0 0 8px #000}
+#cardLayer:not(.editing-cards) button[data-action=hours]{display:flex;align-items:center;justify-content:center;gap:.2em;white-space:nowrap;text-transform:none;font:italic bold clamp(21px,3.4cqw,54px)/1 Georgia,serif;color:#fff6db}
+#cardLayer:not(.editing-cards) button[data-action=hours] em{font:bold italic .86em/1 Arial,sans-serif;color:#edc981}
+#cardLayer:not(.editing-cards) button[data-action=hours]::after{display:none}
+#scenePanel{position:absolute;z-index:5;translate:-50% -50%;width:min(31%,47vh);aspect-ratio:1;max-height:78%;overflow:auto;overscroll-behavior:contain;padding:clamp(12px,1.6vw,26px);border:1px solid #f5ecc978;border-radius:19%;background:#17231bd6;background:linear-gradient(140deg,#253c30a8,#0c1712b8);backdrop-filter:blur(15px);box-shadow:0 8px 25px #0004;scrollbar-width:thin}
+#scenePanel[hidden]{display:none}
+#scenePanel .shop-card{width:100%;padding:0;background:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none}
+#scenePanel .signature,#scenePanel .shop-card::before{display:none}#scenePanel h2{font:italic 1.45em Georgia,serif;margin:0 0 .45em;padding-right:1em}
+#scenePanel .shop-card dl>div{padding:.23em 0}#scenePanel[data-action=prices] dd{color:#ff9992;font-weight:bold}
+#scenePanel .close-scene{position:absolute;z-index:2;right:9%;top:4%;background:#13281ca8;border:0;border-radius:50%;width:30px;height:30px;font-size:21px}
+#leader{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}#leader line{stroke:#fff9;stroke-width:1.5}
+.mobile-tour #scenePanel{width:80%;font-size:14px}.scene{mask-image:none}
+
