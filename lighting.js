@@ -1,106 +1,141 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const movie=$('movie'), canvas=$('screen'), scroller=$('scroller'), panel=$('panel');
-const controls=[
- ['Exposure',-100,100,0],['Warmth',-100,100,0],['Saturation',0,200,100],
- ['Spot intensity',0,100,0],['Spot angle',-90,90,0],['Spot width',10,100,45]
-];
-const sliders=controls.map(([name,min,max,value],i)=>{
- const label=document.createElement('label'), output=document.createElement('output'), input=document.createElement('input');
- input.id='light-'+i;input.type='range';input.min=min;input.max=max;input.value=value;
- label.htmlFor=input.id; label.append(name,output);output.htmlFor=input.id;
- $('sliders').append(label,input);
- return {input,output};
-});
-let taps=0,timeout;
-$('lights').onclick=()=>{
- clearTimeout(timeout);
- if(++taps===3){taps=0;panel.showModal();return;}
- timeout=setTimeout(()=>{taps=0},1400);
+const movie=$('movie'),canvas=$('screen'),scroller=$('scroller'),panel=$('panel');
+const FPS=24, LAST=239, storageKey='maliks-lighting-tracks-v1';
+const fields={
+ intensity:['Intensity',0,200],color:['Colour'],exposure:['Exposure',-100,100],warmth:['Warmth',-100,100],saturation:['Saturation',0,200],
+ x:['Horizontal position',-30,130],y:['Vertical position',-50,100],angle:['Angle',-180,180],width:['Beam width',5,100]
 };
-$('done').onclick=()=>panel.close();
-panel.onclose=()=>$('lights').focus({preventScroll:true});
-function buildRenderer(){
- const gl=canvas.getContext('webgl',{alpha:false,antialias:false,depth:false});
+const main={on:true,intensity:100,color:'#ffffff',exposure:0,warmth:0,saturation:100};
+const spot={on:true,intensity:70,color:'#ffd89c',x:50,y:-18,angle:0,width:45};
+const published={version:1,fps:FPS,video:'walkthrough.mp4',tracks:[{name:'Main light',kind:'main',keys:[{frame:0,...main}]}]};
+function load(){
+ try{
+  const recent=JSON.parse(localStorage.getItem(storageKey));
+  if(recent?.tracks?.[0]?.kind==='main')return recent;
+  const old=JSON.parse(localStorage.getItem('maliks-lighting-v1'));
+  if(Array.isArray(old)&&old.length===6){
+   const migrated=structuredClone(published);
+   Object.assign(migrated.tracks[0].keys[0],{exposure:old[0],warmth:old[1],saturation:old[2]});
+   migrated.tracks.push({kind:'spot',name:'Spotlight 1',keys:[{...spot,frame:0,intensity:old[3],angle:old[4],width:old[5]}]});return migrated;
+  }
+ }catch{}
+ return structuredClone(published);
+}
+let model=load(),selected=0,frame=0;
+const track=()=>model.tracks[selected];
+function save(){try{localStorage.setItem(storageKey,JSON.stringify(model))}catch{$('help').textContent='Device storage is unavailable. Export your preset to keep it.'}}
+const rgb=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));
+function colour(a,b,t){const end=rgb(b);return '#'+rgb(a).map((v,i)=>Math.round(v+(end[i]-v)*t).toString(16).padStart(2,'0')).join('')}
+function sample(light,f){
+ const keys=light.keys;
+ let i=keys.findIndex(k=>k.frame>f);if(i<0)i=keys.length;
+ if(!i)return {...keys[0],on:false};
+ const a=keys[i-1],b=keys[i],v={...a};
+ if(!b||!a.on||!b.on)return v;
+ const t=(f-a.frame)/(b.frame-a.frame);
+ for(const field of Object.keys(fields)){
+  if(typeof a[field]==='number')v[field]=a[field]+(b[field]-a[field])*t;
+ }
+ v.color=colour(a.color,b.color,t);return v;
+}
+function record(change={}){
+ const light=track(),k={...sample(light,frame),...change,frame};
+ light.keys=light.keys.filter(item=>item.frame!==frame).concat(k).sort((a,b)=>a.frame-b.frame);
+ save();refresh();paint();
+}
+const wash=document.createElement('div');
+wash.style.cssText='position:absolute;inset:0;mix-blend-mode:screen;pointer-events:none';canvas.after(wash);
+function renderer(){
+ const gl=canvas.getContext('webgl',{alpha:false,depth:false,antialias:false});
  if(!gl)return null;
  const program=gl.createProgram();
- function attach(type,source){
-  const shader=gl.createShader(type);gl.shaderSource(shader,source);gl.compileShader(shader);
-  if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(shader));
-  gl.attachShader(program,shader);
+ function shader(type,src){
+  const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));gl.attachShader(program,s);
  }
- attach(gl.VERTEX_SHADER,'attribute vec2 p;varying vec2 uv;void main(){uv=p*0.5+0.5;gl_Position=vec4(p,0.,1.);}');
- attach(gl.FRAGMENT_SHADER,`precision mediump float;
- varying vec2 uv;uniform sampler2D frame;uniform vec3 grade;uniform vec3 spot;
- void main(){
- vec3 c=texture2D(frame,uv).rgb;
- float y=dot(c,vec3(.2126,.7152,.0722));
- c=mix(vec3(y),c,grade.z)*exp2(grade.x)*vec3(1.+.22*grade.y,1.,1.-.22*grade.y);
- vec2 d=(uv-vec2(.5,1.18))*vec2(1.7778,1.);
- vec2 axis=vec2(sin(spot.y),-cos(spot.y));
- float spread=spot.z*.75+.08;
- float beam=smoothstep(cos(spread),cos(spread*.33),dot(normalize(d),axis))*exp(-length(d)*.8);
- c+=spot.x*beam*(c+.09)*vec3(1.,.85,.62);
- gl_FragColor=vec4(c,1.);
- }`);
- gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))return null;gl.useProgram(program);
- const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+ shader(gl.VERTEX_SHADER,'attribute vec2 p; varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}');
+ shader(gl.FRAGMENT_SHADER,`precision mediump float;varying vec2 uv;uniform vec4 beam;uniform vec3 tint;
+ void main(){vec2 d=(vec2(uv.x,1.-uv.y)-beam.xy)*vec2(1.77778,1.);vec2 axis=vec2(sin(beam.z),cos(beam.z));
+ float cone=smoothstep(cos(beam.w),cos(beam.w*.26),dot(d/max(.0001,length(d)),axis));
+ gl_FragColor=vec4(tint*cone*exp(-length(d)*.65),1.);}`);
+ gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))return null;
+ gl.useProgram(program);gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
- const pos=gl.getAttribLocation(program,'p');gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
- gl.bindTexture(gl.TEXTURE_2D,gl.createTexture());
- for(const param of [gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER])gl.texParameteri(gl.TEXTURE_2D,param,gl.LINEAR);
- for(const param of [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T])gl.texParameteri(gl.TEXTURE_2D,param,gl.CLAMP_TO_EDGE);
- gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
- const grade=gl.getUniformLocation(program,'grade'),spot=gl.getUniformLocation(program,'spot');
- return ([ev,temp,sat,power,angle,width])=>{
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,movie);
-  gl.uniform3f(grade,ev/100,temp/100,sat/100);
-  gl.uniform3f(spot,power/65,angle*Math.PI/180,width/100);
-  gl.drawArrays(gl.TRIANGLES,0,3);
- };
+ const p=gl.getAttribLocation(program,'p');gl.enableVertexAttribArray(p);gl.vertexAttribPointer(p,2,gl.FLOAT,false,0,0);
+ const beam=gl.getUniformLocation(program,'beam'),tint=gl.getUniformLocation(program,'tint');
+ gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);
+ return spots=>{gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);
+ for(const s of spots){gl.uniform4f(beam,s.x/100,s.y/100,s.angle*Math.PI/180,(5+s.width*.45)*Math.PI/180);
+ gl.uniform3fv(tint,rgb(s.color).map(v=>v/255*s.intensity/155));gl.drawArrays(gl.TRIANGLES,0,3);}};
 }
-let render;
-const wash=document.createElement('div');
-wash.setAttribute('aria-hidden','true');
-wash.style.cssText='position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen';
-canvas.after(wash);
-function redraw(){
- const values=sliders.map(({input})=>Number(input.value));
- sliders.forEach(({output},i)=>output.value=values[i]+(i===4?'°':'%'));
- const adjusted=values[0]||values[1]||values[2]!==100||values[3];
- canvas.hidden=true;movie.style.filter='';wash.style.background='';
- if(!adjusted||movie.readyState<2)return;
- try{
-  if(render===undefined)render=buildRenderer();
-  if(render){render(values);canvas.hidden=false;return;}
- }catch{render=null;}
- const [ev,warmth,saturation,intensity,angle,width]=values;
- movie.style.filter='brightness('+Math.pow(2,ev/100)+') saturate('+saturation+'%)';
- const tint=warmth>=0?'255,145,50':'65,150,255';
- const colour='rgba('+tint+','+Math.abs(warmth)/280+')';
- const radius=8+width*.42;
- const glow='rgba(255,218,163,'+(intensity/145)+')';
- wash.style.background='conic-gradient(from '+(180-angle-radius)+'deg at 50% -18%,transparent 0deg,'+glow+' '+radius+'deg, transparent '+(2*radius)+'deg),linear-gradient('+colour+','+colour+')';
+let draw;
+function paint(){
+ const m=sample(model.tracks[0],frame),spots=model.tracks.slice(1).map(s=>sample(s,frame)).filter(s=>s.on&&s.intensity>0);
+ const filters=[],layers=[];
+ if(m.on){
+  const gain=m.intensity/100*2**(m.exposure/100);
+  movie.style.filter='brightness('+gain+') saturate('+m.saturation+'%)';
+  if(m.color!=='#ffffff')filters.push('linear-gradient('+m.color+'66,'+m.color+'66)');
+  if(m.warmth){const tint=m.warmth>0?'255,155,58':'66,151,255';const c='rgba('+tint+','+Math.abs(m.warmth)/250+')';filters.push('linear-gradient('+c+','+c+')');}
+ }else movie.style.filter='';
+ movie.parentElement.style.setProperty('--tint',filters.join(',')||'none');
+ canvas.hidden=true;
+ if(spots.length){
+  try{if(draw===undefined)draw=renderer();if(draw){draw(spots);canvas.hidden=false}}catch{draw=null}
+  if(canvas.hidden)for(const s of spots){
+   const w=5+s.width*.45,c='rgba('+rgb(s.color).join(',')+','+Math.min(.96,s.intensity/155)+')';
+   layers.push('conic-gradient(from '+(180-s.angle-w)+'deg at '+s.x+'% '+s.y+'%,transparent,'+c+' '+w+'deg,transparent '+(2*w)+'deg)');
+  }
+ }
+ wash.style.background=layers.join(',')||'none';
 }
-canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();render=null;redraw()});
-canvas.addEventListener('webglcontextrestored',()=>{render=undefined;redraw()});
-const key='maliks-lighting-v1';
-function save(){try{localStorage.setItem(key,JSON.stringify(sliders.map(s=>Number(s.input.value))))}catch{}}
-try{const saved=JSON.parse(localStorage.getItem(key));sliders.forEach(({input},i)=>{if(Number.isFinite(saved?.[i]))input.value=saved[i]})}catch{}
-for(const {input} of sliders){input.oninput=redraw;input.onchange=save}
-$('reset').onclick=()=>{sliders.forEach(({input},i)=>input.value=controls[i][3]);save();redraw()};
-let queued=false;
-function seek(){
- queued=false;
- if(movie.readyState<2||movie.seeking)return;
- const p=Math.max(0,Math.min(1,scroller.scrollTop/(scroller.scrollHeight-scroller.clientHeight)));
- const target=Math.round(p*239)/24;
- if(Math.abs(movie.currentTime-target)>.018)movie.currentTime=target;
- $('hint').textContent=p>.995?'Scroll back ↑':'Scroll to explore ↓';
+canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();draw=null;paint()});
+canvas.addEventListener('webglcontextrestored',()=>{draw=undefined;paint()});
+const time=f=>(f/FPS).toFixed(2)+'s';
+function refresh(){
+ const v=sample(track(),frame);
+ $('clock').value=time(frame)+' / 10.00s';$('timeline').value=frame;$('power').checked=v.on;
+ for(const input of $('sliders').querySelectorAll('input')){
+  const n=input.dataset.field;input.value=n==='color'?v[n]:Math.round(v[n]);
+  input.previousElementSibling.lastChild.textContent=n==='color'?v[n]:input.value+(n==='angle'?'°':'%');
+ }
+ $('markers').replaceChildren();
+ track().keys.forEach(k=>{const b=document.createElement('button');b.textContent=time(k.frame)+(k.on?'':' · off');b.classList.toggle('current',frame===k.frame);b.onclick=()=>jump(k.frame);$('markers').append(b)});
+ $('removeKey').disabled=track().keys.length===1||!track().keys.some(k=>k.frame===frame);
+ $('removeLight').hidden=selected===0;
 }
-function queue(){if(!queued){queued=true;requestAnimationFrame(seek)}}
-scroller.addEventListener('scroll',queue,{passive:true});
-movie.addEventListener('seeked',()=>{redraw();queue()});
-movie.addEventListener('loadeddata',()=>{redraw();queue()});
-movie.addEventListener('error',()=>$('hint').textContent='The walkthrough could not load. Refresh to retry.');
-redraw();queue();
+function build(){
+ $('track').replaceChildren(...model.tracks.map((s,i)=>new Option(s.name,i,false,i===selected)));
+ $('sliders').replaceChildren();
+ for(const n of Object.keys(selected?spot:main).filter(n=>n!=='on')){
+  const [name,min,max]=fields[n],box=document.createElement('div'),label=document.createElement('label'),out=document.createElement('output'),input=document.createElement('input');
+  input.id='field-'+n;input.dataset.field=n;label.htmlFor=input.id;label.append(name,out);
+  input.type=n==='color'?'color':'range';if(min!==undefined){input.min=min;input.max=max}
+  input.oninput=()=>record({[n]:n==='color'?input.value:Number(input.value)});
+  box.append(label,input);$('sliders').append(box);
+ }
+ refresh();paint();
+}
+const range=()=>scroller.scrollHeight-scroller.clientHeight;
+function seek(){if(!movie.seeking&&movie.readyState>=2&&Math.abs(movie.currentTime-frame/FPS)>.018)movie.currentTime=frame/FPS;}
+function setFrame(f){frame=Math.max(0,Math.min(LAST,f));seek();if(panel.open)refresh();paint();$('hint').textContent=frame===LAST?'Scroll back ↑':'Scroll to explore ↓'}
+function jump(f){scroller.scrollTop=f/LAST*range();setFrame(f)}
+let pending=false;
+scroller.onscroll=()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;setFrame(Math.round(scroller.scrollTop/range()*LAST))})}};
+movie.addEventListener('loadeddata',seek);movie.addEventListener('seeked',seek);
+movie.onerror=()=>$('hint').textContent='The walkthrough could not load. Refresh to retry.';
+$('timeline').oninput=e=>jump(Number(e.target.value));
+$('track').onchange=e=>{selected=Number(e.target.value);build()};
+$('power').onchange=e=>record({on:e.target.checked});
+$('key').onclick=()=>record();$('stop').onclick=()=>record({on:false});
+$('add').onclick=()=>{const names=new Set(model.tracks.map(t=>t.name));let n=1;while(names.has('Spotlight '+n))n++;
+ model.tracks.push({kind:'spot',name:'Spotlight '+n,keys:[{...spot,frame}]});selected=model.tracks.length-1;save();build()};
+$('removeKey').onclick=()=>{track().keys=track().keys.filter(k=>k.frame!==frame);save();build()};
+$('removeLight').onclick=()=>{if(!selected)return;model.tracks.splice(selected,1);selected=0;save();build()};
+$('reset').onclick=()=>{if(confirm('Reset all lights and keyframes on this device?')){model=structuredClone(published);selected=0;save();build()}};
+$('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(model,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='maliks-lighting-preset.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)};
+let taps=0,timer;
+$('lights').onclick=()=>{clearTimeout(timer);if(++taps===3){taps=0;panel.showModal();build()}else timer=setTimeout(()=>taps=0,1400)};
+$('done').onclick=()=>panel.close();panel.onclose=()=>$('lights').focus({preventScroll:true});
+build();
