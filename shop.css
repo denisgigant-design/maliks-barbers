@@ -12,3 +12,20 @@
 #dismissShop{position:absolute;z-index:1;top:10px;right:12px;border:1px solid #cbb37988;background:#11281e;width:38px;height:38px;font-size:22px;line-height:1}
 button.info-card[data-action]{pointer-events:auto;cursor:pointer;background:linear-gradient(135deg,#184231b5,#06150eb8);border-color:#dfc28caa;color:#fff7e7;font-family:Georgia,serif}
 button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-action]::after{content:"↗";color:#e3c487;font-size:.8em}
+
+/* Let the shop directory follow the video and controls at their natural height. */
+.tour-wrap .stage{height:auto}
+.shop-details{padding-top:clamp(10px,1.8vw,24px)}
+#tourNav{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none}
+#tourNav button{position:absolute;transform:translate(-50%,-50%);width:46px;height:46px;padding:0;border:none;background:transparent;pointer-events:auto;display:grid;place-items:center;border-radius:50%}
+#tourNav [hidden]{display:none}
+#tourNav button::after{content:"";width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px #18201fab;animation:shop-beacon 2s ease-out infinite}
+#tourNav button:focus-visible{outline-offset:-4px}
+.door-dot{left:50%;top:55%}
+.left-dot,.right-dot{top:62%}.left-dot{left:18%}.right-dot{left:82%}
+.left-dot::before,.right-dot::before{content:"";position:absolute;top:50%;width:100vw;height:1px;background:linear-gradient(90deg,#fff5,#fff);box-shadow:0 1px 2px #0009}
+.left-dot::before{right:50%}.right-dot::before{left:50%;transform:rotate(180deg)}
+@keyframes shop-beacon{0%,100%{box-shadow:0 0 0 2px #16221899,0 0 0 0 #ffffff70}75%{box-shadow:0 0 0 2px #16221899,0 0 0 12px #ffffff00}}
+@media(prefers-reduced-motion:reduce){#tourNav button::after{animation:none}}
+#cardLayer:not(.editing-cards) button.info-card[data-action]{border:0;background:transparent;backdrop-filter:none;color:#fffaf1;font:900 clamp(14px,2.2cqw,31px)/1.04 "Arial Narrow",Arial,sans-serif;letter-spacing:.025em;text-transform:uppercase;text-shadow:0 2px 4px #000,0 0 14px #000,0 0 4px #000;overflow:visible}
+#cardLayer:not(.editing-cards) button.info-card[data-action]::after{content:"";display:block;width:28px;height:2px;margin:6px auto 0;background:#e2c384;box-shadow:0 1px 4px #000}

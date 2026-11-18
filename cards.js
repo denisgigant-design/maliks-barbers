@@ -3,17 +3,28 @@
  let cards=[],selectedId=null,drag=null;
  try{const saved=JSON.parse(localStorage.getItem(key));if(Array.isArray(saved))cards=saved}catch{}
  const labels={hours:'Opening hours',prices:'Haircut prices',contact:'Book appointments'};
- if(!mobileTour){
-  let edited=false;try{edited=!!localStorage.getItem(key+'-edited')}catch{}
-  if(!cards.length && !edited){
+ {
+  if(!cards.length){
    cards=[['hours',52,105,50],['prices',106,155,16],['contact',156,LAST,82]].map(([action,start,end,x])=>({
-    id:'shop-'+action,action,start,end,x,y:37,size:21,shape:'long',text:''
+    id:'shop-'+action,action,start,end,x,y:34,size:mobileTour?42:24,shape:'long',text:''
    }));
   }else if(cards.length && !cards.some(c=>c.action)){
    const [first,...rest]=[...cards].sort((a,b)=>a.start-b.start).slice(0,3);
    first.action='hours';
    rest.sort((a,b)=>a.x-b.x).forEach((c,i)=>c.action=i?'contact':'prices');
   }
+ }
+ const stops={hours:85,prices:131,contact:206};
+ function targetFrame(action){
+  const cue=cards.find(c=>c.action===action);
+  return cue?Math.max(cue.start,Math.min(cue.end,stops[action])):stops[action];
+ }
+ const nav=$('tourNav');
+ for(const button of nav.children){
+  button.onclick=()=>{
+   const target=targetFrame(button.dataset.view);
+   scroller.scrollTo({top:range()*target/LAST,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+  };
  }
  const popup=$('shopDialog');
  function markToday(){
@@ -38,9 +49,14 @@
  }
  function render(){
   $('cardTime').value=frame;$('cardClock').value=time(frame);
+  const atDoor=frame<Math.min(48,targetFrame('hours'));
+  for(const button of nav.children){
+   const action=button.dataset.view;
+   button.hidden=editor.open||(action==='hours'?!atDoor:atDoor||Math.abs(targetFrame(action)-frame)<16);
+  }
   const seen=new Set();
   for(const c of cards){
-   if(frame<c.start||frame>c.end)continue;
+   if(frame<c.start||frame>c.end||(!editor.open&&!c.action))continue;
    seen.add(c.id);
    let node=document.getElementById('cue-'+c.id);
    if(!node){node=document.createElement(c.action?'button':'div');if(c.action){node.dataset.action=c.action;node.setAttribute('aria-haspopup','dialog')};node.id='cue-'+c.id;node.dataset.card=c.id;layer.append(node)}
