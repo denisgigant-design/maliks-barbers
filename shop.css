@@ -130,3 +130,85 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 
 #tourNav{z-index:7}
 #scenePanel .panel-art{filter:drop-shadow(0 0 3px #16673d66) brightness(1.18)}
+
+/* === MALIK'S BARBERS / WALL LETTERING + EDGE NAVIGATION + PANEL STUDIO === */
+#leader{display:none!important}
+#tourNav{z-index:7;overflow:hidden;pointer-events:none}
+#tourNav button{pointer-events:auto;width:43px;height:43px;transition:left .35s ease,top .35s ease}
+#tourNav button[hidden]{display:none!important}
+#tourNav button::after{width:13px;height:13px;background:#efece6a3;border:1px solid #fff6de;box-shadow:0 0 0 4px #fffffc16,0 0 14px #fffc}
+#tourNav .entrance-pin::before{display:none!important}
+#tourNav .entrance-pin span{top:94%;font:bold italic clamp(13px,1.4vw,19px) Georgia,serif;color:#fffaf0}
+#tourNav .edge-pin::before{display:block!important;position:absolute;content:"";height:1px;width:24px;top:50%;left:95%;right:auto;background:linear-gradient(90deg,#e7d9bdc9,#eee0c520);transform:none!important;box-shadow:none}
+#tourNav .edge-pin.edge-right::before{left:auto;right:95%;background:linear-gradient(90deg,#eee0c520,#e7d9bdc9)}
+#tourNav .edge-pin span{position:absolute;top:1px!important;left:calc(50% + 13px);transform:none;white-space:nowrap;font:800 11px/1.1 Arial,sans-serif;color:#f3debd;letter-spacing:.045em;text-shadow:0 1px 4px #000,0 0 6px #000}
+#tourNav .edge-pin.edge-right span{left:auto;right:calc(50% + 13px);transform:none;text-align:right}
+#tourNav .edge-pin[data-view=prices] span{color:#ff9b9b}
+#tourNav .edge-pin[data-view=hours] span{color:#8fe8b3}
+#cardLayer{z-index:3}
+#cardLayer:not(.editing-cards) button.info-card.wall-lettering{overflow:visible!important;cursor:pointer;pointer-events:auto;touch-action:manipulation;position:absolute;background:none!important;border:none!important;text-shadow:none!important;box-shadow:none!important;isolation:isolate;min-height:0;min-width:0;white-space:nowrap}
+#cardLayer:not(.editing-cards) button.info-card.wall-lettering::before{content:""!important;display:block!important;position:absolute;z-index:-1;inset:5% 0;pointer-events:none;border:0;width:auto;height:auto;border-radius:50%;background:radial-gradient(ellipse at 50% 50%,color-mix(in srgb,var(--letter-glow,#36c67d) 73%,transparent),color-mix(in srgb,var(--letter-glow,#36c67d) 36%,transparent) 42%,transparent 75%);filter:blur(clamp(12px,2.1vw,32px));opacity:var(--letter-glow-opacity,.65);transform:scale(1.04,.85)}
+#cardLayer:not(.editing-cards) button.info-card.wall-lettering::after{content:none!important;display:none!important}
+#cardLayer:not(.editing-cards) button.info-card.wall-lettering img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:brightness(1.4) drop-shadow(0 2px 6px #000c) drop-shadow(0 0 7px #073f22b5);pointer-events:none;user-select:none}
+#cardLayer:not(.editing-cards) button.info-card.wall-lettering .simple-booking{position:relative;z-index:1;color:#f4daa2!important;font:italic 700 clamp(17px,2.4cqw,37px)/1.12 Georgia,serif;letter-spacing:.085em;text-transform:uppercase;white-space:nowrap;text-shadow:0 1px 6px #000d,0 0 13px #d4a658b3!important;pointer-events:none}
+#scenePanel{z-index:6;aspect-ratio:auto!important;border-radius:23px;border:1px solid var(--glass-border,#c9ae78);background:linear-gradient(135deg,color-mix(in srgb,var(--glass-tint,#1b2420) 43%,transparent),color-mix(in srgb,var(--glass-tint,#1b2420) 68%,transparent));backdrop-filter:blur(16px) saturate(1.07);-webkit-backdrop-filter:blur(16px) saturate(1.07);box-shadow:0 12px 29px #0008;overflow:auto;overscroll-behavior:contain;padding:clamp(16px,1.8vw,26px) clamp(13px,1.5vw,22px);touch-action:pan-y;user-select:text;-webkit-user-select:text;scrollbar-width:thin}
+#scenePanel[data-action]{aspect-ratio:auto!important}
+#scenePanel .shop-card{color:#f9f4e9!important;text-transform:none;background:none!important;border:none!important;padding:0!important;overflow:visible}
+#scenePanel .signature,#scenePanel .shop-card h2{display:none!important}
+#scenePanel .panel-close{position:sticky;display:grid;place-items:center;float:right;top:0;z-index:10;margin:-8px -8px 2px 6px;width:27px;height:27px;border-radius:50%;padding:0!important;border:1px solid #dec89f78;background:#111d19cc;color:#fff9e9;font:22px/1 Arial,sans-serif}
+#scenePanel .shop-card dl{margin:0;clear:both}
+#scenePanel .shop-card dl>div{min-height:0;padding:.24em 0;gap:9px;border-bottom:1px solid #e4d8bc2e}
+#scenePanel .shop-card dt{color:#fbf6e9;font-weight:780;text-transform:uppercase;letter-spacing:.04em}
+#scenePanel .shop-card dd{color:#fff8ed;font-weight:870;white-space:nowrap}
+#scenePanel[data-action=hours] .shop-card dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:12px;row-gap:5px}
+#scenePanel[data-action=hours] .shop-card dl>div{display:flex;flex-direction:column;align-items:flex-start;padding:.28em .2em}
+#scenePanel[data-action=hours] .shop-card dt{color:#6fe7a5;font-weight:850}
+#scenePanel[data-action=hours] .shop-card dd{color:#fffaf1;font-weight:850}
+#scenePanel[data-action=hours] .shop-card small{color:#f2d995}
+#scenePanel[data-action=prices] .shop-card dt{color:#fcf7ec;font-weight:820!important;text-transform:uppercase}
+#scenePanel[data-action=prices] .shop-card dd{color:#ff2e47;text-shadow:0 0 3px #e8294b88,0 0 12px #f9233a7d!important;font-weight:950!important;font-variant-numeric:tabular-nums}
+#scenePanel[data-action=contact] .shop-card address,#scenePanel[data-action=contact] .shop-card p{color:#fff8ed;font-style:normal;text-transform:none;white-space:pre-line;overflow-wrap:anywhere;font-size:inherit;line-height:1.45}
+#scenePanel[data-action=contact] .shop-phone{color:#f4dba1;font-size:1.32em;font-weight:850}
+#scenePanel[data-action=contact] .shop-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+#scenePanel[data-action=contact] .shop-actions a{font-size:.9em;padding:6px 10px;white-space:nowrap}
+#scenePanel .shop-card [data-pe-field]{transition:outline .1s ease}
+#scenePanel.editing-panel [data-pe-field]{cursor:text}
+#scenePanel.editing-panel [data-pe-field]:hover,#scenePanel.editing-panel [data-pe-field]:focus{outline:1px dashed #efc986;outline-offset:2px;border-radius:3px}
+#panelEditor{position:fixed;inset:auto 10px 86px auto;margin:0;z-index:20;width:min(330px,93vw);max-height:calc(100svh - 120px);padding:15px;border:1px solid #e0c4888a;border-radius:18px;background:#121c19f0;color:#fff9ea;backdrop-filter:blur(17px);-webkit-backdrop-filter:blur(17px);box-shadow:0 8px 38px #000b;overflow:auto}
+#panelEditor:not([open]){display:none}
+#panelEditor header h2{font:700 25px Georgia,serif}
+#panelEditor header button{padding:7px 14px}
+#panelEditor .pe-description,#panelEditor #peStatus{font-size:11px;line-height:1.4;color:#d7ccb7;margin:8px 0 12px}
+#panelEditor label{display:block;font-size:12px;font-weight:650;color:#e0d9ca;margin-top:9px}
+#panelEditor label:has(input[type=color]){display:flex;align-items:center;justify-content:space-between;gap:6px}
+#panelEditor select,#panelEditor textarea{box-sizing:border-box;width:100%;background:#1b2c25;color:#fff9eb;border:1px solid #ab946a83;border-radius:9px;min-height:34px;padding:7px;outline-color:#d6bc87;font:13px Arial,sans-serif}
+#panelEditor textarea{min-height:47px;resize:vertical}
+#panelEditor input[type=range]{accent-color:#d5bc85;width:100%;margin:4px 0 5px;touch-action:pan-x}
+#panelEditor input[type=color]{width:35px;height:29px;border:1px solid #e1c99655;border-radius:6px;padding:2px;background:transparent;margin:0;flex:0 0 auto}
+#panelEditor output{color:#b9f0d2;font-weight:700}
+#panelEditor .pe-color-row{display:flex;gap:12px;justify-content:space-between;align-items:center;margin:5px 0 10px}
+#panelEditor .pe-color-row label{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:1;min-width:0}
+#panelEditor .pe-separator{height:1px;background:#d0bb8a3c;margin:12px 0}
+#panelEditor .pe-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+#panelEditor .pe-actions button{font-size:12px;min-height:33px;flex:1;background:#183a2a;border:1px solid #d5bb87;border-radius:10px}
+#panelEditor .pe-actions button:last-child{background:#d0b076;color:#15251b;font-weight:800}
+#panelEditor .pe-grid label{display:flex;justify-content:space-between}
+#panelEditor .pe-grid input{display:block}
+#panelEditor select:focus-visible,#panelEditor textarea:focus-visible{outline:2px solid #dcbf7e}
+@media(max-width:700px){
+ #tourNav button{width:37px;height:37px}
+ #tourNav .edge-pin span{font-size:9px;top:1px!important}
+ #tourNav .edge-pin::before{width:12px}
+ #scenePanel{padding:13px 11px;border-radius:19px;font-size:clamp(10px,2.5vw,14px)}
+ #scenePanel[data-action=hours] .shop-card dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 9px}
+ #scenePanel .shop-card dl>div{padding:.19em 0}
+ #scenePanel .panel-close{width:24px;height:24px}
+ #panelEditor{left:2vw;right:auto;bottom:65px;width:min(310px,96vw);max-height:49svh;padding:12px}
+ #panelEditor header h2{font-size:20px}
+ .editor-buttons{gap:4px}
+ .editor-buttons .pill{padding:7px 9px;font-size:12px}
+ #cardLayer:not(.editing-cards) button.info-card.wall-lettering .simple-booking{font-size:clamp(14px,4.1cqw,26px)}
+}
+
+/* Only viewpoints that have already passed get a connecting stub. */
+#tourNav .edge-pin:not(.passed-pin)::before{display:none!important}
