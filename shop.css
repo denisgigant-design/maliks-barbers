@@ -1,7 +1,7 @@
 .stage{height:100svh;background:linear-gradient(transparent 85%,#091410)}
 .shop-details{display:grid;gap:clamp(20px,4vw,46px);justify-items:center;padding:clamp(38px,7vw,96px) 16px;background:linear-gradient(#091410,transparent 18%,#050c09),radial-gradient(ellipse at 85% 45%,#264939,#091410 74%);position:relative;isolation:isolate}
 .shop-details::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(#091410,transparent 20%,#05100c),center/cover url(storefront.jpg);opacity:.16}
-.shop-card{width:min(100%,740px);position:relative;padding:clamp(24px,5vw,56px);background:linear-gradient(125deg,#292e2aaa,#151715ae 78%);border:1px solid #c4a56462;border-radius:26px;color:#fcf8ee;backdrop-filter:blur(20px);box-shadow:0 16px 40px #0003;overflow:hidden}
+.shop-card{width:min(100%,740px);position:relative;padding:clamp(24px,5vw,56px);background:linear-gradient(125deg,#193a2dd4,#091713d9 78%);border:1px solid #c4a56462;border-radius:26px;color:#fcf8ee;backdrop-filter:blur(20px);box-shadow:0 16px 40px #0003;overflow:hidden}
 .shop-card::before{content:"";position:absolute;right:0;top:0;height:6px;width:30%;background:repeating-linear-gradient(120deg,#c7ab71 0 8px,transparent 8px 14px);opacity:.8}
 .signature{color:#e4c990;font-size:.72rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase}.signature::before{content:"✂";margin-right:.7em;font-size:1rem}
 .shop-card h2{font:normal clamp(30px,5vw,52px)/1.1 Georgia,serif;letter-spacing:-.035em;margin:.32em 0 .65em}
@@ -33,17 +33,100 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 .pinned-tour{position:sticky;top:0}.pinned-tour .stage{position:relative}.pinned-tour .shop-details{padding-top:0}
 #tourNav button::before{display:none}#tourNav button::after{width:18px;height:18px;background:#fff5;border:1px solid #fff9;backdrop-filter:blur(4px)}
 #tourNav button span{position:absolute;top:85%;white-space:nowrap;font:bold italic clamp(14px,2vw,27px) Georgia,serif;text-shadow:0 1px 5px #000,0 0 8px #000}
-#cardLayer:not(.editing-cards) button.info-card[data-action=hours]{display:flex;align-items:center;justify-content:center;gap:.2em;white-space:nowrap;text-transform:none;font:800 clamp(25px,3.7cqw,62px)/1 Arial,sans-serif;color:#fffaf2}
-#cardLayer:not(.editing-cards) button.info-card[data-action=hours] em{font:italic bold 1.08em/1 Georgia,serif;color:#ffd88c}
-#cardLayer:not(.editing-cards) button.info-card[data-action=hours]::after{display:none}
-#scenePanel{position:absolute;z-index:5;translate:-50% -50%;width:min(31%,47vh);aspect-ratio:1;max-height:78%;overflow:auto;overscroll-behavior:contain;padding:clamp(12px,1.6vw,26px);border:1px solid #f5ecc978;border-radius:19%;background:linear-gradient(140deg,#302e2c4d,#1110106a);backdrop-filter:blur(9px);text-shadow:0 1px 4px #000;box-shadow:0 8px 25px #0004;scrollbar-width:thin}
+#cardLayer:not(.editing-cards) button[data-action=hours]{display:flex;align-items:center;justify-content:center;gap:.2em;white-space:nowrap;text-transform:none;font:italic bold clamp(21px,3.4cqw,54px)/1 Georgia,serif;color:#fff6db}
+#cardLayer:not(.editing-cards) button[data-action=hours] em{font:bold italic .86em/1 Arial,sans-serif;color:#edc981}
+#cardLayer:not(.editing-cards) button[data-action=hours]::after{display:none}
+#scenePanel{position:absolute;z-index:5;translate:-50% -50%;width:min(31%,47vh);aspect-ratio:1;max-height:78%;overflow:auto;overscroll-behavior:contain;padding:clamp(12px,1.6vw,26px);border:1px solid #f5ecc978;border-radius:19%;background:#17231bd6;background:linear-gradient(140deg,#253c30a8,#0c1712b8);backdrop-filter:blur(15px);box-shadow:0 8px 25px #0004;scrollbar-width:thin}
 #scenePanel[hidden]{display:none}
 #scenePanel .shop-card{width:100%;padding:0;background:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none}
-#scenePanel .signature,#scenePanel .shop-card::before{display:none}#scenePanel h2{font:italic 1.45em Georgia,serif;margin:0 0 .45em;padding-right:0}
+#scenePanel .signature,#scenePanel .shop-card::before{display:none}#scenePanel h2{font:italic 1.45em Georgia,serif;margin:0 0 .45em;padding-right:1em}
 #scenePanel .shop-card dl>div{padding:.23em 0}#scenePanel[data-action=prices] dd{color:#ff9992;font-weight:bold}
+#scenePanel .close-scene{position:absolute;z-index:2;right:9%;top:4%;background:#13281ca8;border:0;border-radius:50%;width:30px;height:30px;font-size:21px}
 #leader{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}#leader line{stroke:#fff9;stroke-width:1.5}
 .mobile-tour #scenePanel{width:80%;font-size:14px}.scene{mask-image:none}
 
 
+#tourNav{z-index:4}
+#tourNav button[hidden]{display:none}
+#tourNav button span,.shop-card,#scenePanel,#cardLayer:not(.editing-cards) button[data-action=hours]{text-transform:uppercase}
+#scenePanel{aspect-ratio:auto;max-height:37%;border-radius:16px;padding:clamp(8px,1vw,16px);font-size:clamp(12px,1.1vw,17px)}
+#scenePanel h2{font:900 1.25em/1.05 Arial,sans-serif;margin:0 28px .4em 0;padding:0}
+#scenePanel .close-scene{top:4px;right:4px;width:26px;height:26px;line-height:1}
+#scenePanel[data-action=hours]{width:57%;max-height:32%}
+#scenePanel[data-action=hours] dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.25em .6em}
+#scenePanel[data-action=hours] dl>div{display:block;padding:.2em .35em}
+#hours,#contact,#scenePanel:is([data-action=hours],[data-action=contact]) .shop-card{color:#69ff8a}
+#hours dd,#scenePanel[data-action=hours] dd{font-weight:900;color:white}
+#scenePanel[data-action=contact]{width:43%;max-height:31%}
+#scenePanel[data-action=contact] address{font-size:1em}
+#scenePanel[data-action=contact] p{margin:.25em 0;color:white}
+#scenePanel[data-action=contact] .shop-actions{margin-top:.35em}
+#scenePanel[data-action=contact] .shop-actions a{padding:.25em .8em}
+#scenePanel[data-action=prices]{aspect-ratio:1;max-height:78%}
+#prices,#prices dd,#scenePanel[data-action=prices] .shop-card,#scenePanel[data-action=prices] dd{color:#ff6269}
+.mobile-tour #scenePanel[data-action=hours]{width:88%}
+.mobile-tour #scenePanel[data-action=hours] dl{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mobile-tour #scenePanel[data-action=contact]{width:78%}
+#cardLayer:not(.editing-cards) button[data-action=hours]{color:#69ff8a}
+#cardLayer:not(.editing-cards) button[data-action=hours] em{color:white}
 
-#scenePanel{touch-action:none;user-select:none;-webkit-touch-callout:none}#scenePanel.moving{cursor:grabbing;outline:1px solid #efd49e}
+/* FINAL MALIK'S BARBERS OVERLAYS — native videos and lighting kept intact */
+#tourNav{z-index:4;overflow:hidden;pointer-events:none}
+#tourNav button{width:48px;height:48px;pointer-events:auto}
+#tourNav button::before{display:none!important}
+#tourNav button::after{width:19px;height:19px;background:rgba(255,255,255,.46);border:1.5px solid rgba(255,255,255,.93);box-shadow:0 0 0 5px rgba(255,255,255,.15),0 0 14px #fff4;animation:shop-beacon 2s ease-out infinite}
+#tourNav button span{position:absolute;top:93%;left:50%;transform:translateX(-50%);font:800 italic clamp(12px,1.35vw,21px)/1.05 Georgia,serif;letter-spacing:.055em;color:#fff7e8;text-transform:uppercase;text-shadow:0 2px 6px #000,0 0 12px #000;white-space:nowrap}
+#tourNav .left-dot span{color:#eccf98}
+#tourNav .right-dot span{color:#ff8989}
+#tourNav [hidden]{display:none!important}
+#leader{z-index:3}
+#leader line{stroke:rgba(255,248,221,.74);stroke-width:1.6;stroke-linecap:round;filter:drop-shadow(0 1px 2px #000a)}
+#cardLayer:not(.editing-cards) button.info-card[data-action]{background:none!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0!important;color:transparent!important;display:flex;align-items:center;justify-content:center;overflow:visible;text-shadow:none!important;min-width:0;min-height:0;border-radius:0}
+#cardLayer:not(.editing-cards) button.info-card[data-action]::after{display:none!important;content:none!important}
+#cardLayer:not(.editing-cards) button.info-card[data-action] img{height:100%;width:100%;object-fit:contain;display:block;filter:drop-shadow(0 2px 4px #0009) brightness(1.08);pointer-events:none;user-select:none;-webkit-user-drag:none}
+#cardLayer:not(.editing-cards) button.info-card[data-action]:focus-visible{outline:2px solid #ecd39f;outline-offset:3px}
+#scenePanel{z-index:5;width:min(38%,450px);aspect-ratio:auto;max-height:75%;overflow:auto;overscroll-behavior:contain;touch-action:none;user-select:none;-webkit-touch-callout:none;border:1px solid #e5cb9d82;border-radius:24px;padding:clamp(12px,1.4vw,22px);background:linear-gradient(138deg,rgba(42,46,43,.43),rgba(10,14,12,.48));backdrop-filter:blur(17px) saturate(1.05);-webkit-backdrop-filter:blur(17px) saturate(1.05);box-shadow:0 12px 30px #0005;color:#fffdf1;text-shadow:0 1px 4px #0009;font-size:clamp(11px,1.1vw,16px)}
+#scenePanel[hidden]{display:none}
+#scenePanel.moving{cursor:grabbing;border-color:#e6cd98;outline:1px solid #efd59d}
+#scenePanel .shop-card{width:100%;margin:0;padding:0;background:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none;overflow:visible}
+#scenePanel .signature,#scenePanel .shop-card::before{display:none}
+#scenePanel .shop-card h2{font-size:inherit;margin:0 0 .5em;padding:0;text-align:center;line-height:1}
+#scenePanel .panel-art{display:block;width:min(94%,450px);height:auto;max-height:70px;object-fit:contain;margin:0 auto}
+#scenePanel .shop-card dl{margin:0}
+#scenePanel .shop-card dl>div{padding:.29em 0;border-bottom:1px solid #dfcc9930;line-height:1.2;gap:8px}
+#scenePanel .shop-card dt{font-weight:780;letter-spacing:.02em;text-transform:uppercase}
+#scenePanel .shop-card dd{font-weight:850;white-space:nowrap}
+#scenePanel[data-action=hours]{width:min(73%,850px);max-height:35%;border-radius:25px}
+#scenePanel[data-action=hours] .shop-card dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 12px}
+#scenePanel[data-action=hours] .shop-card dl>div{display:flex;flex-direction:column;align-items:flex-start;padding:.12em .25em}
+#scenePanel[data-action=hours] .shop-card dt{font-weight:900;color:#64f1a1;line-height:1.1}
+#scenePanel[data-action=hours] .shop-card dd{font-weight:900;color:#fffefd;line-height:1.1}
+#scenePanel[data-action=hours] .today{background:#cba75b2c}
+#scenePanel[data-action=prices]{width:min(34%,430px);max-height:70%;aspect-ratio:auto}
+#scenePanel[data-action=prices] .shop-card dt,#scenePanel[data-action=prices] .shop-card dd{color:#ff7376;font-weight:900;text-transform:uppercase}
+#scenePanel[data-action=contact]{width:min(36%,440px);max-height:70%}
+#scenePanel[data-action=contact] .shop-card{color:#fbf6e9}
+#scenePanel[data-action=contact] address{font-size:1em;line-height:1.4;color:#fff}
+#scenePanel[data-action=contact] .shop-card p{margin:.45em 0;color:#e6e0d1}
+#scenePanel[data-action=contact] .shop-phone{color:#f6d997;font-weight:bold}
+#scenePanel[data-action=contact] .shop-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+#scenePanel[data-action=contact] .shop-actions a{padding:6px 10px;font-size:.9em}
+.shop-details .shop-card{background:linear-gradient(135deg,#3036319e,#1115118e);border-color:#d3bb8466}
+.shop-details .shop-card h2{text-transform:uppercase}
+.shop-details #hours dt{color:#71e6a4}.shop-details #hours dd{color:#fffdf2;font-weight:bold}
+.shop-details #prices dt,.shop-details #prices dd{color:#ff7f7f;font-weight:850;text-transform:uppercase}
+@media(max-width:700px){
+ #tourNav button{width:38px;height:38px}
+ #tourNav button::after{width:15px;height:15px}
+ #tourNav button span{font-size:10px;letter-spacing:0}
+ #scenePanel{padding:10px 12px;font-size:clamp(10px,2.5vw,14px);max-height:66%;border-radius:18px}
+ #scenePanel[data-action=hours]{width:87%;max-height:50%;border-radius:21px}
+ #scenePanel[data-action=hours] .shop-card dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}
+ #scenePanel[data-action=contact],#scenePanel[data-action=prices]{width:82%;max-height:68%}
+ #scenePanel .panel-art{max-height:46px}
+ #scenePanel[data-action=contact] .shop-actions a{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){#tourNav button::after{animation:none}}
+
+#tourNav{z-index:7}
+#scenePanel .panel-art{filter:drop-shadow(0 0 3px #16673d66) brightness(1.18)}

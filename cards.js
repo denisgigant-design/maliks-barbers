@@ -1,225 +1,302 @@
 (()=>{
+ 'use strict';
  const editor=$('cardsPanel'), layer=$('cardLayer'), key='maliks-card-drafts-v1';
  let cards=[],selectedId=null,drag=null;
  try{const saved=JSON.parse(localStorage.getItem(key));if(Array.isArray(saved))cards=saved}catch{}
- const labels={hours:'Opening hours',prices:'Haircut prices',contact:'Book appointments'};
- {
-  if(!cards.length){
-   cards=[['hours',52,105,50],['contact',106,155,16],['prices',156,LAST,18]].map(([action,start,end,x])=>({
-    id:'shop-'+action,action,start,end,x,y:34,size:mobileTour?42:24,shape:'long',text:''
-   }));
-  }else if(cards.length && !cards.some(c=>c.action)){
-   const [first,...rest]=[...cards].sort((a,b)=>a.start-b.start).slice(0,3);
-   first.action='hours';
-   rest.sort((a,b)=>a.x-b.x).forEach((c,i)=>c.action=i?'prices':'contact');
-  }
+ const labels={hours:'OPEN HOURS',contact:'BOOKINGS',prices:'PRICING & SERVICES'};
+ if(!cards.length){
+  cards=[['hours',52,105,50],['contact',106,155,16],['prices',156,LAST,68]].map(([action,start,end,x])=>({
+   id:'shop-'+action,action,start,end,x,y:action==='hours'?28:35,size:mobileTour?52:action==='hours'?45:30,shape:'long',text:''
+  }));
+ }else if(!cards.some(c=>c.action)){
+  const old=[...cards].sort((a,b)=>a.start-b.start).slice(0,3);
+  if(old[0])old[0].action='hours';
+  if(old[1])old[1].action='contact';
+  if(old[2])old[2].action='prices';
  }
-
- // Earlier drafts assigned the two side scenes in reverse.
  for(const c of cards){
-  if(c.action==='prices' && c.start>=106 && c.end<=155)c.action='contact';
-  else if(c.action==='contact' && c.start>=156)c.action='prices';
+  if(c.action==='prices'&&c.start>=106&&c.end<=155)c.action='contact';
+  else if(c.action==='contact'&&c.start>=156)c.action='prices';
  }
  const stops={hours:85,contact:131,prices:206};
- const targetFrame=action=>stops[action];
- const nav=$('tourNav'), detail=$('scenePanel'), line=$('leader').firstElementChild;
- const scene=nav.parentElement, reduced=matchMedia('(prefers-reduced-motion: reduce)');
- let active=null, scrollArmed=false, hold=0, entrance=null, leaving=false, trace=0;
- const layoutKey='maliks-expanded-positions-'+(mobileTour?'mobile':'desktop');
- let positions={},gesture=null,ignoreTap=false,trip=0,tick=0;
- try{positions=JSON.parse(localStorage.getItem(layoutKey))||{}}catch{}
- function stopTrip(){
-  trip++;cancelAnimationFrame(tick);
+ const nav=$('tourNav'),scene=nav.parentElement,detail=$('scenePanel'),leader=$('leader'),buttons=[...nav.children];
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ const lines=buttons.map(()=>document.createElementNS('http://www.w3.org/2000/svg','line'));
+ leader.replaceChildren(...lines);
+ const layoutKey='maliks-expanded-positions-final-'+(mobileTour?'mobile':'desktop');
+ let positions={};try{positions=JSON.parse(localStorage.getItem(layoutKey))||{}}catch{}
+ let active=null,route=null,trip=0,travelRaf=0,fadeTimer=0,fade=null,dragPanel=null,ignoreTap=false,dismissed=null;
+ let lastFrame=-1;
+ const artwork={hours:'open-hours.png',contact:'bookings.png',prices:'pricing-services.png'};
+
+ function cancelTravel(){
+  trip++;cancelAnimationFrame(travelRaf);travelRaf=0;
   if(movie.dataset.guided){movie.pause();delete movie.dataset.guided}
+  route=null;
  }
- function visit(action){
-  stopTrip();
-  const id=trip, start=frame, end=stops[action];
-  const finish=()=>{stopTrip();jump(end);openPanel(action,false)};
+ function clearFade(){clearTimeout(fadeTimer);fadeTimer=0;if(fade){fade.cancel();fade=null}}
+ function hidePanel(remember=false){
+  if(remember) dismissed=active;
+  clearFade();active=null;detail.hidden=true;detail.classList.remove('moving');
+ }
+ function positionPanel(){
+  if(!active||detail.hidden)return;
+  const defaults=mobileTour?
+   {hours:{x:50,y:31},contact:{x:50,y:48},prices:{x:51,y:49}}:
+   {hours:{x:50,y:29},contact:{x:22,y:51},prices:{x:80,y:50}};
+  const desired=positions[active]||defaults[active];
+  const hx=detail.offsetWidth/Math.max(1,scene.clientWidth)*50+1;
+  const hy=detail.offsetHeight/Math.max(1,scene.clientHeight)*50+1;
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+  detail.style.left=clamp(desired.x,hx,100-hx)+'%';
+  detail.style.top=clamp(desired.y,hy,100-hy)+'%';
+ }
+ function showPanel(action){
+  if(!action||editor.open)return;
+  if(active===action)return;
+  clearFade();active=action;dismissed=null;
+  const article=$(action).cloneNode(true);article.removeAttribute('id');
+  const title=article.querySelector('h2');
+  if(title){
+   const image=document.createElement('img');image.src=artwork[action];image.className='panel-art';
+   image.alt=labels[action];title.replaceChildren(image);
+  }
+  detail.replaceChildren(article);detail.dataset.action=action;detail.hidden=false;
+  detail.setAttribute('aria-label',labels[action]);detail.title='Press and hold to move';
+  markToday();positionPanel();
+  const direction=action==='hours'?'translateY(-22%)':action==='contact'?'translateX(-18%)':'translateX(18%)';
+  fade=detail.animate([{opacity:0,transform:direction},{opacity:1,transform:'none'}],{
+   duration:reduced.matches?0:680,easing:'cubic-bezier(.16,1,.3,1)'});
+  render();
+ }
+ function setTarget(f){
+  // Keep the existing frame-to-scroll timeline and lighting effects in sync.
+  jump(Math.round(Math.max(0,Math.min(LAST,f))));
+ }
+ function navigate(action){
+  if(active===action){hidePanel(true);render();return}
+  cancelTravel();hidePanel();dismissed=null;
+  route=action;
+  const serial=trip,end=stops[action],start=frame;
+  const finish=()=>{
+   if(serial!==trip)return;
+   cancelAnimationFrame(travelRaf);travelRaf=0;
+   if(movie.dataset.guided){movie.pause();delete movie.dataset.guided}
+   setTarget(end);route=null;showPanel(action);
+  };
   if(start===end||reduced.matches){finish();return}
   const scrub=()=>{
-   let since=performance.now();
-   function step(now){
-    if(id!==trip)return;
-    const t=Math.min(1,(now-since)*FPS/(Math.abs(end-start)*1000));
-    if(t===1){finish();return}
-    jump(Math.round(start+(end-start)*t));tick=requestAnimationFrame(step);
-   }
-   tick=requestAnimationFrame(step);
+   const begun=performance.now();
+   const duration=Math.max(780,Math.abs(end-start)*1000/FPS);
+   const step=now=>{
+    if(serial!==trip)return;
+    const t=Math.min(1,(now-begun)/duration),smooth=t*t*(3-2*t);
+    setTarget(start+(end-start)*smooth);
+    if(t>=1){finish();return}
+    travelRaf=requestAnimationFrame(step);
+   };
+   travelRaf=requestAnimationFrame(step);
   };
-  if(end<start||movie.readyState<2){scrub();return}
-  movie.dataset.guided='yes';movie.currentTime=start/FPS;
-  movie.play().then(()=>{
-   if(id!==trip)return;
-   function follow(){
-    if(id!==trip)return;
-    const next=Math.round(movie.currentTime*FPS);
-    if(next>=end||movie.ended){finish();return}
-    if(next!==frame)jump(next);
-    tick=requestAnimationFrame(follow);
-   }
-   follow();
-  }).catch(()=>{if(id===trip){delete movie.dataset.guided;scrub()}});
+  // Move through the ACTUAL video frames instead of cutting to the side view.
+  if(end>start&&movie.readyState>=2){
+   movie.dataset.guided='true';movie.currentTime=start/FPS;
+   movie.play().then(()=>{
+    if(serial!==trip)return;
+    const follow=()=>{
+     if(serial!==trip)return;
+     const next=Math.round(movie.currentTime*FPS);
+     if(next>=end||movie.ended){finish();return}
+     if(next!==frame)setTarget(next);
+     travelRaf=requestAnimationFrame(follow);
+    };
+    follow();
+   }).catch(()=>{if(serial===trip){delete movie.dataset.guided;scrub()}});
+  }else scrub();
  }
- function clearPanel(){
-  if(gesture){clearTimeout(gesture.timer);gesture=null;detail.classList.remove('moving')}
-  clearTimeout(hold);hold=0;active=null;scrollArmed=false;leaving=false;
-  entrance?.cancel();detail.hidden=true;line.style.display='none';render();
- }
- function place(){
+ buttons.forEach(button=>button.addEventListener('click',()=>navigate(button.dataset.view)));
+ function userInteraction(){
+  // Only genuine visitor scroll cancels a guided journey or starts dismissal.
+  if(dragPanel?.moving)return;
+  if(route)cancelTravel();
   if(!active)return;
-  const progress=Math.max(0,Math.min(1,(frame-85)/(stops[active]-85||1)));
-  const end=active==='hours'?50:active==='prices'?18:28;
-  const x=active==='hours'?50:(active==='prices'?94:6)*(1-progress)+end*progress;
-  const saved=positions[active];
-  const halfHeight=detail.offsetHeight/scene.clientHeight*50;
-  const half=detail.offsetWidth/scene.clientWidth*50+1;
-  detail.style.left=Math.min(100-half,Math.max(half,saved?.x??x))+'%';
-  detail.style.top=Math.min(100-halfHeight,Math.max(halfHeight,saved?.y??(active==='hours'?54:50)))+'%';
- }
- function draw(){
-  cancelAnimationFrame(trace);
-  if(!active||active==='hours'){line.style.display='none';return}
-  const dot=nav.querySelector('[data-view="'+active+'"]');
-  if(dot.hidden){line.style.display='none';return}
-  const base=scene.getBoundingClientRect(),d=dot.getBoundingClientRect(),p=detail.getBoundingClientRect();
-  const x=d.left+d.width/2,y=d.top+d.height/2,tx=Math.max(p.left,Math.min(p.right,x)),ty=Math.max(p.top,Math.min(p.bottom,y));
-  for(const [key,value] of Object.entries({x1:x-base.left,y1:y-base.top,x2:tx-base.left,y2:ty-base.top}))line.setAttribute(key,value);
-  line.style.display='';trace=requestAnimationFrame(draw);
- }
- function openPanel(action,navigate){
-  stopTrip();
-  if(active===action){clearPanel();return}
-  if(navigate){clearPanel();visit(action);return}
-  clearTimeout(hold);hold=0;entrance?.cancel();leaving=false;active=action;
-  const content=$(action).cloneNode(true);content.removeAttribute('id');
-  detail.replaceChildren(content);detail.hidden=false;detail.dataset.action=action;detail.setAttribute('aria-label',labels[action]);
-  detail.title='Press and hold to move';
-  markToday();place();
-  const from=action==='hours'?'translateY(-35%)':action==='contact'?'translateX(-40%)':'translateX(40%)';
-  entrance=detail.animate([{opacity:0,transform:from},{opacity:1,transform:'none'}],{duration:reduced.matches?0:650,easing:'ease-out'});
-  scrollArmed=false;
-
-  render();draw();
-
- }
- for(const button of nav.children){
-  button.onclick=()=>{
-   stopTrip();
-   if(button.dataset.view==='hours'){clearPanel();scroller.scrollTo({top:range()*85/LAST,behavior:reduced.matches?'instant':'smooth'})}
-   else openPanel(button.dataset.view,true);
-  };
- }
- function dismissAfterScroll(){
-  if(!active||!scrollArmed||hold||leaving)return;
-  hold=setTimeout(()=>{
-   leaving=true;entrance?.cancel();
-   entrance=detail.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateX(-45%)'}],{duration:reduced.matches?0:520,fill:'forwards',easing:'ease-in'});
-   entrance.onfinish=clearPanel;
+  clearFade();
+  fadeTimer=setTimeout(()=>{
+   if(!active||dragPanel?.moving)return;
+   const outgoing=active;
+   fade=detail.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateX(-28%)'}],{
+    duration:reduced.matches?0:570,fill:'forwards',easing:'ease-in'});
+   fade.onfinish=()=>{if(active===outgoing){hidePanel(true);render()}};
   },2000);
  }
- // A click can move the tour programmatically. Only visitor-initiated scrolling dismisses a panel.
- function armScroll(){if(gesture?.moving)return;stopTrip();if(active)scrollArmed=true}
- scroller.addEventListener('wheel',armScroll,{passive:true});
- scroller.addEventListener('touchmove',armScroll,{passive:true});
+ scroller.addEventListener('wheel',userInteraction,{passive:true});
+ scroller.addEventListener('touchmove',userInteraction,{passive:true});
  scroller.addEventListener('keydown',e=>{
-  if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key))armScroll();
+  if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key))userInteraction();
  });
- scroller.addEventListener('scroll',dismissAfterScroll,{capture:true,passive:true});
- document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active)clearPanel()});
-
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(route)cancelTravel();if(active){hidePanel(true);render()}}});
  detail.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||e.button!==0||e.target.closest('a'))return;
   ignoreTap=false;
   const g={id:e.pointerId,x:e.clientX,y:e.clientY,scroll:detail.scrollTop,moving:false};
-  gesture=g;
+  dragPanel=g;
   g.timer=setTimeout(()=>{
-   if(gesture!==g)return;
-   clearTimeout(hold);hold=0;scrollArmed=false;leaving=false;entrance?.cancel();
-   g.moving=true;ignoreTap=true;detail.classList.add('moving');
-   const rect=detail.getBoundingClientRect();
-   g.dx=g.x-rect.left-rect.width/2;g.dy=g.y-rect.top-rect.height/2;
-   detail.setPointerCapture(g.id);
-  },450);
+   if(dragPanel!==g||!active)return;
+   clearFade();g.moving=true;ignoreTap=true;detail.classList.add('moving');
+   const r=detail.getBoundingClientRect();g.dx=g.x-(r.left+r.width/2);g.dy=g.y-(r.top+r.height/2);
+   try{detail.setPointerCapture(g.id)}catch{}
+  },470);
  });
  detail.addEventListener('pointermove',e=>{
-  const g=gesture;if(!g||g.id!==e.pointerId)return;
+  const g=dragPanel;if(!g||g.id!==e.pointerId)return;
   if(!g.moving){
-   if(Math.hypot(e.clientX-g.x,e.clientY-g.y)>7){
+   if(Math.hypot(e.clientX-g.x,e.clientY-g.y)>9){
     clearTimeout(g.timer);ignoreTap=true;
-    if(e.pointerType==='touch'){scrollArmed=true;detail.scrollTop=g.scroll+g.y-e.clientY}
+    if(e.pointerType==='touch')detail.scrollTop=g.scroll+g.y-e.clientY;
    }
    return;
   }
-  const rect=scene.getBoundingClientRect();
-  positions[active]={x:100*(e.clientX-rect.left-g.dx)/rect.width,y:100*(e.clientY-rect.top-g.dy)/rect.height};
-  place();
+  const r=scene.getBoundingClientRect();
+  const hx=detail.offsetWidth/r.width*50+1,hy=detail.offsetHeight/r.height*50+1;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  positions[active]={
+   x:clamp(100*(e.clientX-r.left-g.dx)/r.width,hx,100-hx),
+   y:clamp(100*(e.clientY-r.top-g.dy)/r.height,hy,100-hy)
+  };
+  positionPanel();paintLines();
  });
  function release(e){
-  const g=gesture;if(!g||g.id!==e.pointerId)return;
-  clearTimeout(g.timer);gesture=null;
+  const g=dragPanel;if(!g||g.id!==e.pointerId)return;
+  clearTimeout(g.timer);dragPanel=null;
   if(g.moving){
-   detail.classList.remove('moving');
-   positions[active]={x:parseFloat(detail.style.left),y:parseFloat(detail.style.top)};
+   detail.classList.remove('moving');ignoreTap=true;
    try{localStorage.setItem(layoutKey,JSON.stringify(positions))}catch{}
   }
  }
  window.addEventListener('pointerup',release);
  window.addEventListener('pointercancel',release);
- detail.oncontextmenu=e=>e.preventDefault();
- detail.onclick=e=>{
+ detail.addEventListener('contextmenu',e=>e.preventDefault());
+ detail.addEventListener('click',e=>{
   if(ignoreTap){ignoreTap=false;return}
-  if(!e.target.closest('a'))clearPanel();
- };
+  if(e.target.closest('a'))return;
+  hidePanel(true);render();
+ });
  function markToday(){
   const day=new Intl.DateTimeFormat('en-IE',{weekday:'long',timeZone:'Europe/Dublin'}).format(new Date());
   for(const row of document.querySelectorAll('[data-day]')){
-   const active=row.dataset.day===day;
-   row.classList.toggle('today',active);row.querySelector('small').hidden=!active;
+   const isToday=row.dataset.day===day;
+   row.classList.toggle('today',isToday);row.querySelector('small').hidden=!isToday;
   }
  }
- markToday();setInterval(markToday,1000*30);document.addEventListener('visibilitychange',markToday);
+ markToday();setInterval(markToday,30000);document.addEventListener('visibilitychange',markToday);
  layer.addEventListener('click',e=>{
   const button=e.target.closest('button[data-action]');
   if(!button||editor.open)return;
-  openPanel(button.dataset.action,false);
+  if(active===button.dataset.action){hidePanel(true);render()}
+  else navigate(button.dataset.action);
  });
- const selected=()=>cards.find(c=>c.id===selectedId);
- function save(){
-  try{localStorage.setItem(key+"-edited","1");localStorage.setItem(key,JSON.stringify(cards))}catch{$('cardStatus').textContent='Device storage unavailable. Export your cards to keep them.'}
+ const pinPoints={
+  hours:[[0,50,55],[85,50,21],[131,57,22],[206,14,23]],
+  contact:[[0,17,54],[85,17,52],[131,17,53],[206,16,51]],
+  prices:[[0,83,54],[85,83,52],[131,83,52],[206,83,52]]
+ };
+ const anchors={
+  hours:[[0,50,50],[85,50,29],[131,60,30],[206,20,31]],
+  contact:[[0,11,52],[85,19,54],[131,24,48],[206,8,48]],
+  prices:[[0,90,54],[85,80,53],[131,79,50],[206,78,48]]
+ };
+ function between(points,f){
+  if(f<=points[0][0])return points[0].slice(1);
+  for(let i=1;i<points.length;i++){
+   if(f<=points[i][0]){
+    const [a,x,y]=points[i-1],[b,X,Y]=points[i],t=(f-a)/(b-a);
+    return [x+(X-x)*t,y+(Y-y)*t];
+   }
+  }
+  return points[points.length-1].slice(1);
+ }
+ function pinFor(action){
+  if(mobileTour&&frame>=48)return action==='hours'?[50,12]:action==='contact'?[16,15]:[84,15];
+  return between(pinPoints[action],frame);
+ }
+ function paintLines(){
+  const w=Math.max(1,scene.clientWidth),h=Math.max(1,scene.clientHeight);
+  leader.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  for(let i=0;i<buttons.length;i++){
+   const b=buttons[i],action=b.dataset.view,line=lines[i];
+   line.style.display=b.hidden?'none':'';
+   if(b.hidden)continue;
+   const [px,py]=pinFor(action);
+   let [tx,ty]=between(anchors[action],frame);
+   if(active===action&&!detail.hidden){
+    const r=detail.getBoundingClientRect(),s=scene.getBoundingClientRect();
+    const cx=(r.left+r.right)/2-s.left,cy=(r.top+r.bottom)/2-s.top;
+    const dx=px*w/100,dy=py*h/100;
+    tx=Math.max(r.left-s.left,Math.min(r.right-s.left,dx))/w*100;
+    ty=Math.max(r.top-s.top,Math.min(r.bottom-s.top,dy))/h*100;
+    if(Math.abs(tx-px)<.5&&Math.abs(ty-py)<.5){tx=cx/w*100;ty=cy/h*100}
+   }
+   for(const [k,v] of Object.entries({x1:px*w/100,y1:py*h/100,x2:tx*w/100,y2:ty*h/100}))line.setAttribute(k,v.toFixed(1));
+  }
+ }
+ function showPins(){
+  const door=frame<48;
+  for(const button of buttons){
+   const action=button.dataset.view;
+   button.hidden=editor.open||(door&&action!=='hours')||(!route&&active===action);
+   const [x,y]=pinFor(action);
+   button.style.left=x+'%';button.style.top=y+'%';
+   button.setAttribute('aria-current',String(active===action));
+   const label=button.querySelector('span');
+   if(label&&action==='hours')label.textContent=door?'ENTER':'OPEN HOURS';
+  }
  }
  function render(){
   $('cardTime').value=frame;$('cardClock').value=time(frame);
-
-  place();
-  if(active&&active!=='hours'){
-   const dot=nav.querySelector('[data-view="'+active+'"]');
-   const fraction=Math.max(0,Math.min(1,(frame-85)/(stops[active]-85)));
-   dot.style.left=(active==='prices'?82-8*fraction:18-11*fraction)+'%';
-   dot.style.top=(62+12*fraction)+'%';
-  }else for(const dot of nav.children){dot.style.left='';dot.style.top=''}
-  const atDoor=frame<Math.min(48,targetFrame('hours'));
-  for(const button of nav.children){
-   const action=button.dataset.view;
-   button.hidden=editor.open||(action==='hours'?!atDoor:atDoor||(frame>105&&active!==action));
+  if(!route&&!active&&!editor.open&&!dragPanel){
+   const near=Object.keys(stops).find(a=>Math.abs(frame-stops[a])<=(a==='hours'?6:8));
+   if(near&&dismissed!==near)showPanel(near);
+   if(!near&&Math.abs(frame-lastFrame)>8)dismissed=null;
   }
+  lastFrame=frame;
+  showPins();positionPanel();paintLines();
   const seen=new Set();
   for(const c of cards){
-   const couchTitle=c.action==='hours'&&!editor.open&&!mobileTour;
-   const visible=couchTitle ? frame>=52&&frame<=105 : frame>=c.start&&frame<=c.end;
-   if(!visible||(!editor.open&&!c.action))continue;
+   const visible=frame>=c.start&&frame<=c.end;
+   if(!visible||(!editor.open&&!c.action)||(active===c.action&&!editor.open))continue;
    seen.add(c.id);
    let node=document.getElementById('cue-'+c.id);
-   if(!node){node=document.createElement(c.action?'button':'div');if(c.action){node.dataset.action=c.action;node.setAttribute('aria-controls','scenePanel')};node.id='cue-'+c.id;node.dataset.card=c.id;layer.append(node)}
-   if(c.action)node.setAttribute('aria-expanded',String(active===c.action));
+   if(!node){
+    node=document.createElement(c.action?'button':'div');
+    if(c.action){node.dataset.action=c.action;node.setAttribute('aria-controls','scenePanel')}
+    node.id='cue-'+c.id;node.dataset.card=c.id;layer.append(node);
+   }
    node.className='info-card '+c.shape+(c.id===selectedId?' chosen':'');
-   node.textContent=labels[c.action]||c.text||(editor.open?'Card '+(cards.indexOf(c)+1):'');
-   if(c.action==='hours'&&!editor.open)node.innerHTML='Opening <em>Hours</em>';
-   const ratio=c.shape==='square'?1:2.8;
-   const w=Math.min(layer.clientWidth*c.size/100,layer.clientHeight*ratio*.95),h=w/ratio;
-   Object.assign(node.style,{width:w+'px',height:h+'px',left:((layer.clientWidth-w)*(couchTitle?50:!editor.open&&c.action==='prices'?12:c.x)/100)+'px',top:((layer.clientHeight-h)*(couchTitle?48:c.y)/100)+'px'});
+   node.setAttribute('aria-expanded',String(active===c.action));
+   if(c.action&&!editor.open){
+    const target=artwork[c.action];
+    if(node.dataset.artwork!==target){
+     node.replaceChildren();
+     const img=document.createElement('img');img.src=target;img.alt=labels[c.action];img.draggable=false;
+     node.appendChild(img);node.dataset.artwork=target;
+    }
+   }else{node.dataset.artwork='';node.textContent=labels[c.action]||c.text||('Card '+(cards.indexOf(c)+1))}
+   const title=c.action&&!editor.open;
+   const ratio=title?c.action==='hours'?5.2:4.9:c.shape==='square'?1:2.8;
+   const size=title?mobileTour?65:c.action==='hours'?49:31:c.size;
+   const w=Math.min(layer.clientWidth*size/100,layer.clientHeight*ratio*.94),h=w/ratio;
+   let x=c.x,y=c.y;
+   if(title){
+    if(c.action==='hours'){x=50;y=mobileTour?26:24}
+    if(c.action==='contact'){x=mobileTour?22:8;y=mobileTour?32:35}
+    if(c.action==='prices'){x=mobileTour?65:70;y=mobileTour?33:38}
+   }
+   Object.assign(node.style,{width:w+'px',height:h+'px',left:((layer.clientWidth-w)*x/100)+'px',top:((layer.clientHeight-h)*y/100)+'px'});
   }
   for(const node of [...layer.children])if(!seen.has(node.dataset.card))node.remove();
+ }
+ const selected=()=>cards.find(c=>c.id===selectedId);
+ function save(){
+  try{localStorage.setItem(key+"-edited","1");localStorage.setItem(key,JSON.stringify(cards))}catch{$('cardStatus').textContent='Device storage unavailable. Export your cards to keep them.'}
  }
  function fields(){
   const c=selected();$('cardFields').disabled=!c;
@@ -245,7 +322,7 @@
   $(id).oninput=e=>{selected()[prop]=+e.target.value;save();render()};
  }
  $('startHere').onclick=()=>{const c=selected();c.start=frame;c.end=Math.max(c.end,frame);save();fields()};
- $('endHere').onclick=()=>{const c=selected();if(frame<c.start){$('cardStatus').textContent='Choose an end at or after '+time(c.start);return}c.end=frame;$('cardStatus').textContent='';save();fields()};
+ $('endHere').onclick=()=>{const c=selected();if((active===c.action&&!editor.open)||frame<c.start){$('cardStatus').textContent='Choose an end at or after '+time(c.start);return}c.end=frame;$('cardStatus').textContent='';save();fields()};
  $('deleteCard').onclick=()=>{cards=cards.filter(c=>c.id!==selectedId);selectedId=cards[0]?.id;save();fields()};
  layer.onpointerdown=e=>{
   const node=e.target.closest('.info-card');if(!editor.open||!node)return;
@@ -264,6 +341,5 @@
   const a=document.createElement('a');a.href=url;a.download='maliks-cards.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)};
  scroller.addEventListener('tourframe',render);new ResizeObserver(render).observe(layer);render();
 })();
-
 
 
