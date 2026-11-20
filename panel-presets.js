@@ -150,3 +150,118 @@ window.MALIKS_PANEL_PRESETS = {
     }
   }
 };
+
+/* Pricing barber overlay: enabled for everyone by the published site. */
+/* Malik's Barbers – transparent pricing barber overlay.
+   No GIF, canvas or background removal runs on the visitor's phone.
+   The VP9 WebM file already contains an alpha channel. */
+(() => {
+  'use strict';
+  const scene = document.querySelector('.scene');
+  const panel = document.getElementById('scenePanel');
+  if (!scene || !panel || document.getElementById('pricingBarber')) return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #pricingBarber {
+      position: absolute;
+      left: var(--pricing-barber-x, 50%);
+      bottom: var(--pricing-barber-bottom, 0.8%);
+      height: var(--pricing-barber-height, 87%);
+      width: auto;
+      aspect-ratio: 415 / 1207;
+      transform: translateX(-50%) translateY(6px);
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 450ms ease-out, transform 450ms ease-out, visibility 450ms;
+      isolation: isolate;
+      contain: layout style;
+    }
+    #pricingBarber.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+    #pricingBarber::after {
+      content: '';
+      position: absolute;
+      height: 2%;
+      width: 58%;
+      left: 21%;
+      bottom: 0.5%;
+      z-index: -1;
+      background: rgba(0,0,0,0.58);
+      filter: blur(7px);
+      border-radius: 100%;
+    }
+    #pricingBarber video {
+      position: relative;
+      display: block;
+      height: 100%;
+      width: 100%;
+      object-fit: contain;
+      filter: drop-shadow(3px 7px 5px rgba(0,0,0,.42))
+              brightness(.91) saturate(.94);
+    }
+    @media (max-aspect-ratio: 1/1) {
+      #pricingBarber {
+        left: var(--pricing-barber-x-mobile, 50%);
+        bottom: var(--pricing-barber-bottom-mobile, 2%);
+        height: var(--pricing-barber-height-mobile, 72%);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #pricingBarber { transition: none; }
+    }
+  `;
+  document.head.append(style);
+
+  const shell = document.createElement('div');
+  shell.id = 'pricingBarber';
+  shell.setAttribute('aria-hidden','true');
+  const video = document.createElement('video');
+  video.id = 'pricingBarberVideo';
+  video.muted = true;
+  video.playsInline = true;
+  video.autoplay = false;
+  video.loop = false; // the one-second movement plays once; final pose remains visible
+  video.preload = 'none';
+  video.disablePictureInPicture = true;
+  video.setAttribute('playsinline','');
+  video.setAttribute('webkit-playsinline','');
+  video.setAttribute('disablepictureinpicture','');
+  shell.append(video);
+  // Behind the red pricing card and navigation, in front of the scene footage.
+  scene.insertBefore(shell, panel);
+
+  let showing = false;
+  let loaded = false;
+  const sync = () => {
+    const active = panel.dataset.action === 'prices' &&
+      !panel.hidden && !panel.inert && !document.getElementById('panelEditor')?.open;
+    if (active === showing) return;
+    showing = active;
+    shell.classList.toggle('is-visible', showing);
+    if (showing) {
+      if (!loaded) {
+        loaded = true;
+        video.src = 'pricing-barber-transparent.webm';
+        video.load();
+      }
+      try { video.currentTime = 0; } catch (_) {}
+      const attempt = video.play();
+      if (attempt && typeof attempt.catch === 'function') attempt.catch(() => {});
+    } else {
+      video.pause();
+      // Reset only once hidden; does not interfere with scene travel smoothness.
+      try { if (video.readyState >= 1) video.currentTime = 0; } catch (_) {}
+    }
+  };
+  const observer = new MutationObserver(sync);
+  observer.observe(panel, {attributes:true, attributeFilter:['hidden','inert','data-action']});
+  const panelEditor = document.getElementById('panelEditor');
+  if (panelEditor) observer.observe(panelEditor, {attributes:true, attributeFilter:['open']});
+  sync();
+})();
