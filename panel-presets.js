@@ -1,35 +1,35 @@
-/* Shared layouts exported from the desktop and mobile Panels editors. */
+/* Published panel layouts for Malik’s Barbers */
 window.MALIKS_PANEL_PRESETS = {
   "desktop": {
     "hours": {
-      "width": 44,
+      "width": 55,
       "height": 82,
-      "x": 54,
-      "y": 31,
+      "x": 50,
+      "y": 22,
       "glass": "#1b2520",
       "border": "#cbb57f",
       "lettering": {
-        "width": 65,
-        "x": 51,
-        "y": 51,
-        "glow": "#30c37e",
-        "strength": 72
+        "width": 18,
+        "x": 76,
+        "y": 27,
+        "glow": "#00ff00",
+        "strength": 100
       },
       "fields": {}
     },
     "contact": {
-      "width": 20,
-      "height": 35,
-      "x": 9,
-      "y": 30,
+      "width": 39,
+      "height": 78,
+      "x": 5,
+      "y": 5,
       "glass": "#0c2904",
       "border": "#000000",
       "lettering": {
-        "width": 18,
-        "x": 25,
-        "y": 55,
+        "width": 23,
+        "x": 5,
+        "y": 52,
         "glow": "#0c4005",
-        "strength": 74
+        "strength": 100
       },
       "fields": {
         "address": {
@@ -45,16 +45,16 @@ window.MALIKS_PANEL_PRESETS = {
       }
     },
     "prices": {
-      "width": 43,
+      "width": 40,
       "height": 88,
-      "x": 5,
-      "y": 28,
+      "x": 21,
+      "y": 34,
       "glass": "#1c2420",
       "border": "#cdb783",
       "lettering": {
-        "width": 36,
-        "x": 42,
-        "y": 48,
+        "width": 25,
+        "x": 48,
+        "y": 41,
         "glow": "#39b772",
         "strength": 67
       },
@@ -63,32 +63,32 @@ window.MALIKS_PANEL_PRESETS = {
   },
   "mobile": {
     "hours": {
-      "width": 65,
-      "height": 46,
+      "width": 80,
+      "height": 72,
       "x": 52,
       "y": 29.91104657504615,
       "glass": "#1b2520",
       "border": "#cbb57f",
       "lettering": {
-        "width": 72,
-        "x": 52,
-        "y": 48,
+        "width": 21,
+        "x": 89,
+        "y": 34,
         "glow": "#30c37e",
         "strength": 70
       },
       "fields": {}
     },
     "contact": {
-      "width": 44,
-      "height": 42,
-      "x": 5,
-      "y": 27,
+      "width": 61,
+      "height": 61,
+      "x": 25,
+      "y": 46,
       "glass": "#012102",
       "border": "#000000",
       "lettering": {
-        "width": 76,
-        "x": 21,
-        "y": 37,
+        "width": 34,
+        "x": 5,
+        "y": 19,
         "glow": "#000000",
         "strength": 100
       },
@@ -103,16 +103,16 @@ window.MALIKS_PANEL_PRESETS = {
       }
     },
     "prices": {
-      "width": 64,
-      "height": 85,
-      "x": 12,
-      "y": 32,
+      "width": 62,
+      "height": 92,
+      "x": 11,
+      "y": 72,
       "glass": "#1c2420",
       "border": "#cdb783",
       "lettering": {
-        "width": 84,
-        "x": 50,
-        "y": 42,
+        "width": 44,
+        "x": 95,
+        "y": 44,
         "glow": "#39b772",
         "strength": 67
       },

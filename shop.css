@@ -107,10 +107,12 @@
 
 
 
-/* Track the wall in video coordinates. Only the face animates, so its mounting point stays fixed. */
+/* Keep camera tracking on the outer button and the authored 3D pose on the sign face. */
 #cardLayer { overflow: hidden; }
 .wall-sign {
  position: absolute;
+ left: 0;
+ top: 0;
  z-index: 1;
  display: block;
  padding: 0;
@@ -121,10 +123,22 @@
  overflow: visible;
  pointer-events: auto;
  touch-action: pan-y pinch-zoom;
- transform-origin: center;
+ transform-origin: 0 0;
+ will-change: transform;
  -webkit-tap-highlight-color: transparent;
 }
-.wall-sign::before {
+.wall-sign .sign-view, .wall-sign .sign-face, .wall-sign img {
+ display: block;
+ width: 100%;
+ height: 100%;
+}
+.wall-sign .sign-view { perspective: var(--sign-perspective); }
+.wall-sign .sign-face {
+ position: relative;
+ transform-style: preserve-3d;
+ transform-origin: center;
+}
+.wall-sign .sign-face::before {
  content: "";
  position: absolute;
  inset: 13% 4%;
@@ -132,20 +146,25 @@
  opacity: calc(.27 * var(--halo-opacity));
  filter: blur(7px);
  pointer-events: none;
+ transform: translateZ(-.5px);
 }
-.wall-sign .sign-face, .wall-sign img { display: block; width: 100%; height: 100%; }
-.wall-sign .sign-face { position: relative; }
 .wall-sign img {
  object-fit: contain;
  pointer-events: none;
  user-select: none;
- animation: neon-breathe 2.6s ease-in-out infinite;
 }
-@keyframes neon-breathe {
- 0%, 100% { filter: brightness(.93) drop-shadow(0 0 1px var(--tube-tint)); }
- 55% { filter: brightness(1.16) drop-shadow(0 0 4px var(--tube-tint)); }
+.wall-sign .sign-face.curved img { visibility: hidden; }
+.wall-sign .sign-strip { display: none; }
+.wall-sign .curved .sign-strip {
+ display: block;
+ position: absolute;
+ top: 0;
+ left: 50%;
+ height: 100%;
+ transform-origin: left center;
+ background-image: var(--sign-image);
+ background-repeat: no-repeat;
 }
-.wall-sign:active .sign-face { scale: .98; }
 .wall-sign:focus-visible { outline: 2px solid white; outline-offset: 4px; }
 .wall-sign[hidden], #scenePanel[hidden] { display: none; }
 #tourNav .edge-pin[data-view=contact] span { color: #a3dcff; }
@@ -188,8 +207,10 @@
 #scenePanel:focus-visible { outline: none; }
 #scenePanel:focus-visible .illustrated-menu { outline: 2px solid white; outline-offset: 1px; }
 #panelEditor #peShowCard { width: auto; margin: 0 .5em 0 0; vertical-align: middle; }
+#panelEditor .pe-group { border: 0; border-top: 1px solid #d0bb8a48; padding: 4px 0 0; margin: 14px 0 0; min-width: 0; }
+#panelEditor .pe-group legend { padding: 0 8px 0 0; font-weight: 700; color: #fff4de; }
+#panelEditor .pe-group label[for] { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 @media (prefers-reduced-motion: reduce) {
- .wall-sign img { animation: none; }
  #tourNav button { transition: none; }
 }
 

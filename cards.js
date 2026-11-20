@@ -8,17 +8,19 @@
  const mobile = mobileTour, device = mobile ? 'mobile' : 'desktop';
  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
  const key = 'maliks-card-drafts-v1';
- const prefKey = 'maliks-panel-layout-v4-' + device;
- const layoutKey = 'maliks-expanded-positions-final-' + device;
+ const layoutKey = platform => 'maliks-wall-mount-layout-v1-' + platform;
  const publishedLayouts = window.MALIKS_PANEL_PRESETS;
  const tracks = window.MALIKS_WALL_TRACKS[device];
  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
  const stops = {hours: 85, contact: 131, prices: 206};
+ const mountDefaults = {depth:0, yaw:0, pitch:0, roll:0, bend:0};
+ const enterRadius = FPS / 2, leaveRadius = enterRadius + 3;
+ const signDuration = 1000;
  const titles = {hours: 'Open Times', contact: 'Booking', prices: 'Pricing'};
  const assets = {
-  hours:   {sign: 'neon-open-times.png', card: 'opening-hours-card.png', tint: '#48ff39'},
-  contact: {sign: 'neon-booking.png', card: 'bookings-card.png', tint: '#18beff'},
-  prices:  {sign: 'neon-pricing.png', card: 'pricing-card.png', tint: '#ff342f'}
+  hours:   {sign: 'neon-open-times.png', card: 'opening-hours-card.png'},
+  contact: {sign: 'neon-booking.png', card: 'bookings-card.png'},
+  prices:  {sign: 'neon-pricing.png', card: 'pricing-card.png'}
  };
  const popoverCopy = {
   hours: 'Opening hours. Monday to Wednesday, 10 am to 7 pm. Thursday and Friday, 10 am to 8 pm. Saturday, 9 am to 7 pm. Sunday, 10 am to 6 pm.',
@@ -31,30 +33,23 @@
   try { return JSON.parse(localStorage.getItem(name)) || {}; }
   catch { return {}; }
  }
+ function publishedPanel(platform, action) {
+  const base = structuredClone(publishedLayouts[platform][action]);
+  base.lettering = {...mountDefaults, ...base.lettering};
+  return base;
+ }
  function readLayout(platform) {
-  const shared = publishedLayouts[platform];
-  const local = stored('maliks-panel-layout-v4-' + platform);
-  const legacy = stored('maliks-panel-layout-v3-' + platform);
-  const oldPositions = stored('maliks-expanded-positions-final-' + platform);
+  const local = stored(layoutKey(platform));
   return Object.fromEntries(actions.map(action => {
-   const base = shared[action];
+   const base = publishedPanel(platform, action);
    const draft = local[action] || {};
-   const older = legacy[action] || {};
-   // In v3, the menus were text. Only their sign geometry carries across.
-   const oldSign = older.lettering || {};
-   return [action, {
-    ...base, ...draft,
-    x: draft.x ?? oldPositions[action]?.x ?? base.x,
-    y: draft.y ?? oldPositions[action]?.y ?? base.y,
-    lettering: {...base.lettering, ...oldSign, ...draft.lettering}
-   }];
+   return [action, {...base, ...draft, lettering:{...base.lettering, ...draft.lettering}}];
   }));
  }
  const settings = readLayout(device);
  function persist() {
   try {
-   localStorage.setItem(prefKey, JSON.stringify(settings));
-   localStorage.setItem(layoutKey, JSON.stringify(Object.fromEntries(actions.map(a => [a, {x: settings[a].x, y: settings[a].y}]))));
+   localStorage.setItem(layoutKey(device), JSON.stringify(settings));
   } catch { $('peStatus').textContent = 'Device storage is unavailable. Export the preset to keep these settings.'; }
  }
  let cards=[],selectedId=null,cardDrag=null;
@@ -72,9 +67,12 @@
   else if(c.action==='contact'&&c.start>=156)c.action='prices';
  }
  const signs = new Map();
+ const mounts = new Map();
  let active = null, route = null, trip = 0, travelRaf = 0;
  let hideTimer = 0, motion = null, originScroll = 0;
- let dragPanel = null, ignoreClick = false, feedback = null;
+ let dragPanel = null, ignoreClick = false;
+ let visit = null, signTimer = 0, signVisible = false;
+ let paintedFrame = null;
  for (const action of actions) {
   const sign = document.createElement('button');
   sign.type = 'button';
@@ -83,7 +81,9 @@
   sign.hidden = true;
   sign.setAttribute('aria-label', 'View ' + titles[action]);
   sign.setAttribute('aria-controls', 'scenePanel');
-  sign.style.setProperty('--tube-tint', assets[action].tint);
+  sign.style.setProperty('--sign-image', 'url("' + assets[action].sign + '")');
+  const view = document.createElement('span');
+  view.className = 'sign-view';
   const face = document.createElement('span');
   face.className = 'sign-face';
   const image = document.createElement('img');
@@ -91,28 +91,81 @@
   image.alt = '';
   image.draggable = false;
   face.append(image);
-  sign.append(face);
+  view.append(face);
+  sign.append(view);
   layer.append(sign);
   signs.set(action, sign);
+  mounts.set(action, {face, strips:[], shapeKey:'', poseKey:''});
  }
- const stageWidth = () => layer.clientWidth;
- const stageHeight = () => layer.clientHeight;
- function wallTransform(action, at) {
-  for (const segment of tracks[action]) {
-   if (at < segment[0][0] || at > segment[segment.length - 1][0]) continue;
-   const index = segment.findIndex(row => row[0] >= at);
-   const next = segment[index];
-   if (at === next[0]) return next.slice(1);
-   const prev = segment[index - 1];
-   const t = (at - prev[0]) / (next[0] - prev[0]);
-   return prev.slice(1).map((n, i) => n + (next[i + 1] - n) * t);
+ // Fit a continuous cylindrical surface to the PNG. The middle of the sign is its pivot.
+ function setCurve(mount, width, bend) {
+  const key = width + '/' + bend;
+  if (key === mount.shapeKey) return;
+  mount.shapeKey = key;
+  mount.face.classList.toggle('curved', bend !== 0);
+  if (!bend) return;
+  const count = 20;
+  while (mount.strips.length < count) {
+   const strip = document.createElement('span');
+   strip.className = 'sign-strip';
+   mount.face.append(strip);
+   mount.strips.push(strip);
   }
-  return null;
+  const arc = 2 * bend * Math.PI / 180, radius = width / arc;
+  const step = arc / count, chord = 2 * radius * Math.sin(step / 2);
+  mount.strips.forEach((strip, i) => {
+   const angle = (i - count / 2) * step;
+   const x = radius * Math.sin(angle);
+   const z = 2 * radius * Math.sin(angle / 2) ** 2;
+   strip.style.width = (chord + (i < count - 1 ? 0.45 : 0)) + 'px';
+   strip.style.backgroundSize = (chord * count) + 'px 100%';
+   strip.style.backgroundPosition = (-i * chord) + 'px 0';
+   strip.style.transform = 'translate3d(' + x + 'px,0,' + z + 'px) rotateY(' + (-(angle + step / 2)) + 'rad)';
+  });
  }
+ function fitMount(action, width, preset) {
+  const mount = mounts.get(action), sign = signs.get(action);
+  const key = [width,preset.depth,preset.yaw,preset.pitch,preset.roll,preset.bend,preset.glow,preset.strength].join('/');
+  if (key === mount.poseKey) return;
+  mount.poseKey = key;
+  sign.style.width = width + 'px';
+  sign.style.height = width / 3 + 'px';
+  sign.style.setProperty('--sign-perspective', width * 2.4 + 'px');
+  sign.style.setProperty('--sign-halo', preset.glow);
+  sign.style.setProperty('--halo-opacity', clamp(preset.strength / 100, 0, 1));
+  mount.face.style.transform = 'translateZ(' + width * preset.depth / 100 + 'px) rotateZ(' + preset.roll +
+   'deg) rotateY(' + preset.yaw + 'deg) rotateX(' + preset.pitch + 'deg)';
+  setCurve(mount, width, preset.bend);
+ }
+ // Precompute the same subpixel transform for each decoded frame in either swipe direction.
+ function makeWallPoses(action) {
+  const stop = stops[action], identity = [1,0,0,1,0,0];
+  const rows = tracks[action].find(rows => rows[0][0] <= stop && rows[rows.length-1][0] >= stop);
+  function sample(at) {
+   const i = rows.findIndex(row => row[0] >= at);
+   if (i < 0) return rows[rows.length-1].slice(1);
+   const next = rows[i];
+   if (i === 0 || at === next[0]) return next.slice(1);
+   const prev = rows[i-1], t = (at - prev[0]) / (next[0] - prev[0]);
+   return prev.slice(1).map((v, col) => v + (next[col+1] - v) * t);
+  }
+  function smooth(at) {
+   const left = sample(at-2), middle = sample(at), right = sample(at+2);
+   return middle.map((v, i) => (left[i] + 2*v + right[i]) / 4);
+  }
+  const reference = smooth(stop);
+  const poses = new Map();
+  for (let at = stop - leaveRadius; at <= stop + leaveRadius; at++) {
+   const values = smooth(at);
+   poses.set(at, values.map((v, i) => identity[i] + (v - reference[i])));
+  }
+  return poses;
+ }
+ const poses = Object.fromEntries(actions.map(action => [action, makeWallPoses(action)]));
  function placeSign(action, at, sw, sh) {
   const sign = signs.get(action);
-  const pose = wallTransform(action, at);
-  if (editor.open || !pose || sw <= 0 || sh <= 0 || at <= exteriorEnd) {
+  const pose = poses[action].get(at);
+  if (!pose || !sw || !sh) {
    sign.hidden = true;
    return false;
   }
@@ -124,33 +177,56 @@
   const refX = (sw - width) * preset.x / 100 + width / 2;
   const refY = (sh - oldHeight) * preset.y / 100 + oldHeight / 2;
   const [a, b, c, d, tx, ty] = pose;
-  const x = a * refX + c * refY + tx * sw;
-  const y = b * refX + d * refY + ty * sh;
-  if (x < 0 || x > sw || y < 0 || y > sh) {
-   sign.hidden = true;
-   return false;
-  }
+  const left = refX - width / 2, top = refY - height / 2;
+  fitMount(action, width, preset);
+  // One compositor transform moves the entire mounted sign with the actual video frame.
+  const e = a*left + c*top + tx*sw, f = b*left + d*top + ty*sh;
+  sign.style.transform = 'matrix(' + [a,b,c,d,e,f].join(',') + ')';
   sign.hidden = false;
-  sign.style.width = width + 'px';
-  sign.style.height = height + 'px';
-  sign.style.left = x - width / 2 + 'px';
-  sign.style.top = y - height / 2 + 'px';
-  sign.style.transform = 'matrix(' + [a,b,c,d,0,0].join(',') + ')';
-  sign.style.setProperty('--sign-halo', preset.glow);
-  sign.style.setProperty('--halo-opacity', clamp(preset.strength / 100, 0, 1));
   return true;
  }
- function showPins(at, sw, sh) {
-  const outside = at <= exteriorEnd;
+ function endVisit() {
+  clearTimeout(signTimer);
+  visit = null;
+  signVisible = false;
+ }
+ function visibleWall(at) {
+  if (editor.open || panelEditor.open || route || at === null) {
+   if (visit) endVisit();
+   const selected = $('pePanel').value;
+   return panelEditor.open && at !== null && Math.abs(at-stops[selected]) <= 1 ? selected : null;
+  }
+  const near = (action, radius) => Math.abs(at-stops[action]) <= radius && Math.abs(frame-stops[action]) <= radius;
+  if (visit && !near(visit, leaveRadius)) endVisit();
+  if (!visit) {
+   visit = actions.find(action => near(action, enterRadius)) || null;
+   if (visit) {
+    signVisible = true;
+    signTimer = setTimeout(() => { signVisible = false; render(); }, signDuration);
+   }
+  }
+  return signVisible ? visit : null;
+ }
+ function showPins(sw, sh) {
+  const at = paintedFrame;
+  const outside = at === null || at <= exteriorEnd;
   const editing = editor.open || panelEditor.open;
+  const visible = visibleWall(at);
   door.hidden = editing || !outside || !!route;
   for (const button of pins) {
    const action = button.dataset.view;
-   const wallVisible = placeSign(action, at, sw, sh);
+   const sign = signs.get(action);
+   const hadFocus = document.activeElement === sign || document.activeElement === button;
+   const wallVisible = action === visible && placeSign(action, at, sw, sh);
+   if (!wallVisible) sign.hidden = true;
    const expanded = active === action && !detail.hidden && !detail.inert;
-   signs.get(action).setAttribute('aria-expanded', String(expanded));
+   sign.setAttribute('aria-expanded', String(expanded));
    button.setAttribute('aria-expanded', String(expanded));
    button.hidden = editing || outside || wallVisible;
+   if (hadFocus && !outside && !editing && !route) {
+    const target = wallVisible ? sign : button;
+    if (document.activeElement !== target) target.focus({preventScroll:true});
+   }
    if (button.hidden) continue;
    const right = action === 'prices' || (action === 'hours' && at >= 109 && at < 147);
    button.className = 'edge-pin' + (right ? ' edge-right' : '') + (at > stops[action] ? ' passed-pin' : '');
@@ -179,17 +255,12 @@
   }
   layer.querySelectorAll('[data-card]').forEach(node => { if (!seen.has(node.dataset.card)) node.remove(); });
  }
- let paintedFrame = frame;
- function displayedFrame() {
-  if (movie.readyState < 2) return frame;
-  return 'requestVideoFrameCallback' in movie ? paintedFrame : Math.round(movie.currentTime * FPS);
- }
  function render() {
-  const sw = stageWidth(), sh = stageHeight();
+  const {width:sw, height:sh} = layer.getBoundingClientRect();
   $('cardTime').value = frame;
   $('cardClock').value = time(frame);
   renderDrafts(sw, sh);
-  showPins(displayedFrame(), sw, sh);
+  showPins(sw, sh);
  }
  function applyPanelStyle() {
   if (!active) return;
@@ -238,14 +309,6 @@
    target.focus({preventScroll:true});
   }
  }
- function flashSign(action) {
-  if (feedback) { feedback.cancel(); feedback = null; }
-  const face = signs.get(action).firstElementChild;
-  if (reduced.matches) return;
-  feedback = face.animate([{filter:'brightness(1)', transform:'scale(1)'},
-   {filter:'brightness(1.42)', transform:'scale(.965)', offset:.25},
-   {filter:'brightness(1)', transform:'scale(1)'}], {duration:380, easing:'ease-out'});
- }
  function showPanel(action, animate = true, focus = false) {
   clearTimer();
   stopMotion();
@@ -281,13 +344,11 @@
   route = action;
   if (panelEditor.open) panelEditor.close();
   if (active && (start !== end || active !== action)) hidePanel();
-  if (!signs.get(action).hidden && start !== end) flashSign(action);
   render();
   const finish = () => {
    if (serial !== trip) return;
    cancelTravel();
    jump(end);
-   flashSign(action);
    showPanel(action, true, keyboard);
   };
   if (start === end || reduced.matches) { finish(); return; }
@@ -405,15 +466,17 @@
  const controls = [
   ['peWidth','width'], ['peHeight','height'], ['peX','x'], ['peY','y'],
   ['peLetterWidth','width',true], ['peLetterX','x',true], ['peLetterY','y',true],
+  ['peDepth','depth',true], ['peYaw','yaw',true,'°'], ['pePitch','pitch',true,'°'],
+  ['peRoll','roll',true,'°'], ['peBend','bend',true,'°'],
   ['peGlowStrength','strength',true], ['peGlow','glow',true]
  ];
  function syncPanelEditor() {
   const pref = settings[$('pePanel').value];
-  for (const [id, prop, isSign] of controls) {
+  for (const [id, prop, isSign, unit = '%'] of controls) {
    const v = (isSign ? pref.lettering : pref)[prop];
    $(id).value = v;
    const out = $(id+'Out');
-   if (out) out.value = Math.round(v)+'%';
+   if (out) out.value = Number(v.toFixed(1)) + unit;
   }
  }
  function choosePanel(action) {
@@ -422,6 +485,7 @@
   if ($('peShowCard').checked) showPanel(action, false);
   else hidePanel(false);
   syncPanelEditor();
+  render();
  }
  $('panelsBtn').onclick = () => {
   if (panelEditor.open) { panelEditor.close(); return; }
@@ -429,7 +493,6 @@
   if ($('panel').open) $('panel').close();
   panelEditor.show();
   $('pePanel').value = active || 'hours';
-  $('peShowCard').checked = true;
   choosePanel($('pePanel').value);
  };
  $('peDone').onclick = () => panelEditor.close();
@@ -449,7 +512,7 @@
  $('peReset').onclick = () => {
   const action = $('pePanel').value;
   if (!confirm('Restore the published '+titles[action]+' layout on this device?')) return;
-  settings[action] = structuredClone(publishedLayouts[device][action]);
+  settings[action] = publishedPanel(device, action);
   persist();
   choosePanel(action);
   $('peStatus').textContent = 'Published layout restored on this device.';
@@ -522,16 +585,34 @@
   const href=URL.createObjectURL(new Blob([JSON.stringify({version:1,fps:FPS,video:movie.getAttribute('src'),cards},null,2)],{type:'application/json'}));
   const a=document.createElement('a');a.href=href;a.download='maliks-cards.json';a.click();setTimeout(()=>URL.revokeObjectURL(href),10000);
  };
- if ('requestVideoFrameCallback' in movie) {
+ function present(at) {
+  const next = clamp(at, 0, LAST);
+  if (next === paintedFrame) return;
+  paintedFrame = next;
+  const {width, height} = layer.getBoundingClientRect();
+  showPins(width, height);
+ }
+ if (typeof movie.requestVideoFrameCallback === 'function') {
   const onVideoFrame = (_, metadata) => {
-   paintedFrame = clamp(Math.round(metadata.mediaTime * FPS), 0, LAST);
-   showPins(paintedFrame, stageWidth(), stageHeight());
+   present(Math.round(metadata.mediaTime * FPS));
    movie.requestVideoFrameCallback(onVideoFrame);
   };
   movie.requestVideoFrameCallback(onVideoFrame);
  } else {
-  movie.addEventListener('seeked',render);
-  movie.addEventListener('timeupdate',render);
+  // currentTime changes before the decoded image during a seek. Keep the previous pose until it lands.
+  const sample = () => {
+   if (!movie.seeking && movie.readyState >= 2) present(Math.floor(movie.currentTime * FPS + .001));
+  };
+  let playbackRaf = 0;
+  function followPlayback() {
+   sample();
+   playbackRaf = movie.paused || movie.ended ? 0 : requestAnimationFrame(followPlayback);
+  }
+  movie.addEventListener('playing', () => { if (!playbackRaf) followPlayback(); });
+  movie.addEventListener('seeked', sample);
+  movie.addEventListener('loadeddata', sample);
+  movie.addEventListener('timeupdate', sample);
+  sample();
  }
  scroller.addEventListener('tourframe',render);
  new ResizeObserver(render).observe(layer);
