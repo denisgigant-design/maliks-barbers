@@ -1,34 +1,25 @@
-MALIK’S BARBERS — 20 NOV 2026 / NEW POP-UP CARD IMAGES
-======================================================
+MALIK’S BARBERS — NOVEMBER 20, 2026 UPDATE
 
-Based on your latest Wall & Panels version. The video walkthrough, wall lettering,
-edge dots, Bookings panel, and Panels editor are retained.
+This ZIP contains the complete latest *replacement/update set* for the
+existing Malik’s Barbers GitHub Pages website. All files are in the root
+(no assets folder).
 
-WHAT CHANGED
-------------
-Tap OPEN HOURS wall lettering -> your exact supplied green image opens.
-Tap PRICING & SERVICES wall lettering -> your exact supplied burgundy-red image opens.
-Tap BOOKINGS -> the original Bookings glass panel opens, unchanged.
-Both new artwork panels have a close (X) button, and are responsive without
-stretching or cropping the supplied images. Wall text stays untouched.
-
-UPLOAD TO THE REPOSITORY ROOT
------------------------------
+To install: extract the ZIP, then upload these files into the root of
 https://github.com/denisgigant-design/maliks-barbers
+and replace matching filenames. Keep your existing lighting.js, video
+files, storefront/mobile photos, and any other existing files.
+This is an update package, not a complete standalone copy of the site.
 
-Upload these 5 website files together, replacing the three existing code files:
-- index.html
-- shop.css
-- cards.js
-- opening-hours-card.png (NEW)
-- pricing-card.png (NEW)
+What changed:
+- Reduced, classic WELCOME styling; positioned lower on mobile.
+- Smaller barbershop clipper markers, all softly pulsing, all labels
+  placed underneath on desktop and mobile.
+- Independent, eager-loaded image for each pop-up: Pricing never flashes
+  the previous blue Booking card during an image swap.
+- Six original transparent artworks served as WebP (alpha preserved)
+  at materially smaller total download size.
+- Preserved published desktop/mobile wall-sign and pop-up-card positions,
+  Panels editor, 1-second scroll-away dismissal, and wall-view tracking.
 
-Do NOT delete or replace existing panel-presets.js, lighting.js, mobile-tour.mp4, walkthrough.mp4,
-storefront.jpg, any other videos, or the three existing wall-lettering graphics
-(open-hours.png, bookings.png, pricing-services.png).
-
-The cards contain fixed printed text; to edit their wording, edit the PNGs.
-Panel positioning and resizing remain in the Panels editor.
-
-If GitHub Pages still shows the previous panels, refresh the browser and clear
-its cached copy of the page. The new JS and CSS use updated cache versions.
+The old PNG assets can remain on GitHub; the updated page uses WebP.
+Do NOT delete or replace lighting.js or video/photo files.

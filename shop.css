@@ -302,3 +302,59 @@
 @media (prefers-reduced-motion: reduce) {
  .nav-clipper::before { animation: none; opacity: .6; }
 }
+
+
+/* November 20: refined Welcome + smaller, gently pulsing clipper navigation. */
+#tourNav button { --clipper-size: 18px; }
+#tourNav .edge-pin { --clipper-size: 17px; }
+#tourNav .door-dot { --clipper-size: 19px; }
+#tourNav .nav-clipper {
+  --clipper-turn: -17deg;
+  transform: translate(-50%, -50%) rotate(var(--clipper-turn));
+  animation: malik-clipper-breathe 2.15s ease-in-out infinite;
+}
+#tourNav .edge-right .nav-clipper { --clipper-turn: 17deg; }
+@keyframes malik-clipper-breathe {
+  0%,100% { transform:translate(-50%, -50%) rotate(var(--clipper-turn)) scale(.97); filter:brightness(.92); }
+  50% { transform:translate(-50%, -50%) rotate(var(--clipper-turn)) scale(1.10); filter:brightness(1.2); }
+}
+#tourNav .edge-pin span,
+#tourNav .edge-pin.edge-right span {
+  top: calc(50% + 17px)!important;
+  left:50%; right:auto;
+  transform:translateX(-50%);
+  text-align:center;
+  font:600 10px/1.1 Georgia,serif;
+  letter-spacing:.055em;
+  text-shadow:0 1px 3px #000,0 0 7px #000;
+  white-space:nowrap;
+}
+#tourNav .door-dot .nav-clipper { top:59%; }
+#tourNav .door-dot span {
+  top:calc(59% + 19px);
+  left:50%; transform:translateX(-50%);
+  font:600 11px/1.1 Georgia,serif;
+  letter-spacing:.11em;
+  text-shadow:0 1px 4px #000,0 0 7px #000;
+}
+@media(max-width:700px) {
+  #tourNav .edge-pin { --clipper-size: 15px; }
+  #tourNav .edge-pin span, #tourNav .edge-pin.edge-right span {
+    font-size:9px;letter-spacing:.035em;top:calc(50% + 16px)!important;
+  }
+  #tourNav .door-dot { --clipper-size: 17px; }
+  #tourNav .door-dot .nav-clipper { top:64%; }
+  #tourNav .door-dot span { top:calc(64% + 18px);font-size:10px;letter-spacing:.09em; }
+}
+@media(prefers-reduced-motion:reduce) {
+  #tourNav .nav-clipper {animation:none;filter:none;}
+}
+
+/* Each pop-up owns its image. Swapping panels never flashes an earlier image. */
+#scenePanel .illustrated-menu { display:none; }
+#scenePanel[data-action="hours"] .illustrated-menu[data-card-image="hours"],
+#scenePanel[data-action="contact"] .illustrated-menu[data-card-image="contact"],
+#scenePanel[data-action="prices"] .illustrated-menu[data-card-image="prices"] {display:block;}
+
+/* Only keep compositing hints while a sign is active, reducing off-screen GPU work. */
+.wall-sign[hidden] {will-change:auto;}

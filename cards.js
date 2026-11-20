@@ -4,7 +4,6 @@
  const scene = nav.parentElement, detail = $('scenePanel'), panelEditor = $('panelEditor');
  const door = nav.querySelector('[data-enter]');
  const pins = [...nav.querySelectorAll('[data-view]')];
- const popupImage = detail.querySelector('img');
  const mobile = mobileTour, device = mobile ? 'mobile' : 'desktop';
  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
  const key = 'maliks-card-drafts-v1';
@@ -18,9 +17,9 @@
  const signDepartureDelay = 1000;
  const titles = {hours: 'Open Times', contact: 'Booking', prices: 'Pricing'};
  const assets = {
-  hours:   {sign: 'neon-open-times.png', card: 'opening-hours-card.png'},
-  contact: {sign: 'neon-booking.png', card: 'bookings-card.png'},
-  prices:  {sign: 'neon-pricing.png', card: 'pricing-card.png'}
+  hours:   {sign: 'neon-open-times.webp', card: 'opening-hours-card.webp'},
+  contact: {sign: 'neon-booking.webp', card: 'bookings-card.webp'},
+  prices:  {sign: 'neon-pricing.webp', card: 'pricing-card.webp'}
  };
  const popoverCopy = {
   hours: 'Opening hours. Monday to Wednesday, 10 am to 7 pm. Thursday and Friday, 10 am to 8 pm. Saturday, 9 am to 7 pm. Sunday, 10 am to 6 pm.',
@@ -93,6 +92,9 @@
   face.className = 'sign-face';
   const image = document.createElement('img');
   image.src = assets[action].sign;
+  image.loading = 'eager';
+  image.decoding = 'async';
+  image.fetchPriority = 'low';
   image.alt = '';
   image.draggable = false;
   face.append(image);
@@ -293,7 +295,7 @@
    if (button.hidden) continue;
    const right = action === 'prices' || (action === 'hours' && at >= 109 && at < 147);
    button.className = 'edge-pin' + (right ? ' edge-right' : '') + (at > stops[action] ? ' passed-pin' : '');
-   button.style.left = right ? '93%' : '7%';
+   button.style.left = mobile ? (right ? '88%' : '12%') : (right ? '93%' : '7%');
    button.style.top = action === 'hours' ? '17%' : '78%';
   }
  }
@@ -379,8 +381,8 @@
   active = action;
   ignoreClick = false;
   originScroll = scroller.scrollTop;
-  const source = assets[action].card;
-  if (popupImage.getAttribute('src') !== source) popupImage.src = source;
+  // Three permanent, independently loaded images prevent the previous (blue)
+  // Booking artwork from appearing when Pricing is selected.
   detail.dataset.action = action;
   detail.setAttribute('aria-label', popoverCopy[action] + ' Activate to dismiss.');
   detail.hidden = false;
