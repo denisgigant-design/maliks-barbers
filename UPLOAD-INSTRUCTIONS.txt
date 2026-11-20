@@ -1,0 +1,38 @@
+MALIK'S BARBERS — PRICING BARBER CONTROLS (20 NOV 2026)
+
+UPLOAD THESE THREE FILES TO YOUR GITHUB REPOSITORY ROOT
+(the same place as index.html):
+  1. panel-presets.js                  [replace existing file]
+  2. barber-preset.js                  [new file]
+  3. pricing-barber-transparent.webm   [replace existing if present]
+
+Do NOT delete any other site files. This package leaves existing wall-sign
+positions, booking/pricing/opening-hours cards, and the native tour unchanged.
+
+USE
+1. Open the website on your phone or desktop and navigate to PRICING.
+2. Tap "Panels", then choose "Pricing & services" in the panel selector.
+3. A "Barber video placement" editor appears IMMEDIATELY BELOW the selector.
+4. Left/right, up/down, 4 arrow nudge buttons, size, depth, layer order,
+   shadow strength and on/off control are available.
+5. Controls save locally on the device. Both Desktop and Mobile can be edited
+   using the "Preset to edit" selector (live preview only on matching device).
+6. Tap "Export barber-preset.js". This exports BOTH mobile and desktop
+   placement values. Replace barber-preset.js on GitHub with the downloaded file
+   to make the positions public for all visitors.
+
+The existing "Export site preset" button still exports panel-presets.js with
+its barber feature preserved. It is SEPARATE from Export barber-preset.js.
+
+VIDEO
+- pricing-barber-transparent.webm contains a real VP9 alpha channel.
+- The clip runs once on opening the pricing panel and holds on the last frame.
+- It is not a GIF, and no background-removal processing runs on visitors' phones.
+
+DEFAULTS
+Desktop: positioned farther right (70%), height 86%.
+Mobile: 67% from left, height 57% so it stays smaller behind the card.
+Mobile WELCOME clipper slightly smaller (17px to 13px).
+
+If your device still shows the previous version after upload, refresh the page
+from the browser or open it in a new private tab to bypass cached site files.
