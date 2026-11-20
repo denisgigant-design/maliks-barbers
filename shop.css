@@ -14,17 +14,14 @@
 #tourNav{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none}
 #tourNav button{position:absolute;transform:translate(-50%,-50%);width:46px;height:46px;padding:0;border:none;background:transparent;pointer-events:auto;display:grid;place-items:center;border-radius:50%}
 #tourNav [hidden]{display:none}
-#tourNav button::after{content:"";width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px #18201fab;animation:shop-beacon 2s ease-out infinite}
 #tourNav button:focus-visible{outline-offset:-4px}
 .door-dot{left:50%;top:55%}
 .left-dot,.right-dot{top:62%}.left-dot{left:18%}.right-dot{left:82%}
 .left-dot::before,.right-dot::before{content:"";position:absolute;top:50%;width:100vw;height:1px;background:linear-gradient(90deg,#fff5,#fff);box-shadow:0 1px 2px #0009}
 .left-dot::before{right:50%}.right-dot::before{left:50%;transform:rotate(180deg)}
-@keyframes shop-beacon{0%,100%{box-shadow:0 0 0 2px #16221899,0 0 0 0 #ffffff70}75%{box-shadow:0 0 0 2px #16221899,0 0 0 12px #ffffff00}}
-@media(prefers-reduced-motion:reduce){#tourNav button::after{animation:none}}
 
 .pinned-tour{position:sticky;top:0}.pinned-tour .stage{position:relative}.pinned-tour .shop-details{padding-top:0}
-#tourNav button::before{display:none}#tourNav button::after{width:18px;height:18px;background:#fff5;border:1px solid #fff9;backdrop-filter:blur(4px)}
+#tourNav button::before{display:none}
 #tourNav button span{position:absolute;top:85%;white-space:nowrap;font:bold italic clamp(14px,2vw,27px) Georgia,serif;text-shadow:0 1px 5px #000,0 0 8px #000}
 
 
@@ -39,7 +36,6 @@
 #tourNav{z-index:4;overflow:hidden;pointer-events:none}
 #tourNav button{width:48px;height:48px;pointer-events:auto}
 #tourNav button::before{display:none!important}
-#tourNav button::after{width:19px;height:19px;background:rgba(255,255,255,.46);border:1.5px solid rgba(255,255,255,.93);box-shadow:0 0 0 5px rgba(255,255,255,.15),0 0 14px #fff4;animation:shop-beacon 2s ease-out infinite}
 #tourNav button span{position:absolute;top:93%;left:50%;transform:translateX(-50%);font:800 italic clamp(12px,1.35vw,21px)/1.05 Georgia,serif;letter-spacing:.055em;color:#fff7e8;text-transform:uppercase;text-shadow:0 2px 6px #000,0 0 12px #000;white-space:nowrap}
 #tourNav .left-dot span{color:#eccf98}
 #tourNav .right-dot span{color:#ff8989}
@@ -50,10 +46,8 @@
 .shop-details #prices dt,.shop-details #prices dd{color:#ff7f7f;font-weight:850;text-transform:uppercase}
 @media(max-width:700px){
  #tourNav button{width:38px;height:38px}
- #tourNav button::after{width:15px;height:15px}
  #tourNav button span{font-size:10px;letter-spacing:0}
 }
-@media(prefers-reduced-motion:reduce){#tourNav button::after{animation:none}}
 
 #tourNav{z-index:7}
 
@@ -61,7 +55,6 @@
 #tourNav{z-index:7;overflow:hidden;pointer-events:none}
 #tourNav button{pointer-events:auto;width:43px;height:43px;transition:left .35s ease,top .35s ease}
 #tourNav button[hidden]{display:none!important}
-#tourNav button::after{width:13px;height:13px;background:#efece6a3;border:1px solid #fff6de;box-shadow:0 0 0 4px #fffffc16,0 0 14px #fffc}
 #tourNav .entrance-pin::before{display:none!important}
 #tourNav .entrance-pin span{top:94%;font:bold italic clamp(13px,1.4vw,19px) Georgia,serif;color:#fffaf0}
 #tourNav .edge-pin::before{display:block!important;position:absolute;content:"";height:1px;width:24px;top:50%;left:95%;right:auto;background:linear-gradient(90deg,#e7d9bdc9,#eee0c520);transform:none!important;box-shadow:none}
@@ -169,9 +162,6 @@
 .wall-sign[hidden], #scenePanel[hidden] { display: none; }
 #tourNav .edge-pin[data-view=contact] span { color: #a3dcff; }
 #tourNav .edge-pin { min-width: 44px; min-height: 44px; }
-#tourNav .edge-pin[data-view=contact]::after { background: #76caff; }
-#tourNav .edge-pin[data-view=hours]::after { background: #85eea0; }
-#tourNav .edge-pin[data-view=prices]::after { background: #ff9197; }
 
 /* The transparent card wrapper lets visitors reach the wall at either side of the artwork. */
 #scenePanel {
@@ -217,7 +207,7 @@
 .scene { mask-image: none; }
 
 
-/* Make the actual door glass around the welcome beacon tappable. */
+/* The door keeps its full touch target around the Welcome clipper. */
 #tourNav .door-dot {
  width: 27%;
  height: 53%;
@@ -225,5 +215,90 @@
  touch-action: pan-y pinch-zoom;
 }
 .mobile-tour #tourNav .door-dot { width: 40%; height: 35%; }
-#tourNav .door-dot span { top: calc(50% + 13px); }
+#tourNav .door-dot span { top: calc(50% + 24px); }
 #scroller { overflow-anchor: none; }
+
+#tourNav button {
+ --clipper-color: 255 255 255;
+ --clipper-size: 26px;
+ touch-action: pan-y pinch-zoom;
+}
+#tourNav [data-view="hours"] { --clipper-color: 87 244 130; }
+#tourNav [data-view="contact"] { --clipper-color: 58 181 255; }
+#tourNav [data-view="prices"] { --clipper-color: 255 82 95; }
+#tourNav .nav-clipper {
+ position: absolute;
+ left: 50%;
+ top: 50%;
+ display: block;
+ width: var(--clipper-size);
+ height: calc(var(--clipper-size) * 1.46);
+ transform: translate(-50%, -50%) rotate(-17deg);
+ pointer-events: none;
+}
+#tourNav .edge-right .nav-clipper { transform: translate(-50%, -50%) rotate(17deg); }
+.nav-clipper::before {
+ content: "";
+ position: absolute;
+ inset: 9% 16% 2%;
+ border-radius: 4px 4px 45% 45%;
+ background: rgb(var(--clipper-color) / .86);
+ filter: blur(4px);
+ animation: clipper-pulse 1.9s ease-in-out infinite;
+}
+.clipper-grip {
+ position: absolute;
+ inset: 18% 17% 0;
+ border: 1px solid rgb(var(--clipper-color) / .96);
+ border-radius: 4px 4px 46% 46% / 12% 12% 24% 24%;
+ background: linear-gradient(110deg, #ffffffe0, rgb(var(--clipper-color) / .55) 33%, rgb(var(--clipper-color) / .3) 66%, #182a34a6);
+ box-shadow: inset -1px -2px 2px #101a265c, 0 1px 3px #061322b3;
+ -webkit-backdrop-filter: blur(4px) saturate(1.35);
+ backdrop-filter: blur(4px) saturate(1.35);
+}
+.clipper-grip::before {
+ content: "";
+ position: absolute;
+ top: 28%;
+ left: 37%;
+ width: 26%;
+ height: 32%;
+ border-radius: 3px;
+ background: linear-gradient(#f7ffff 0 32%, #172a38 32% 100%);
+ box-shadow: 0 0 0 1px #18313e99;
+}
+.clipper-blade {
+ position: absolute;
+ inset: 0 5% auto;
+ height: 27%;
+ filter: drop-shadow(0 1px 1px #0a1729);
+}
+.clipper-blade::before, .clipper-blade::after { content: ""; position: absolute; left: 0; right: 0; }
+.clipper-blade::before {
+ top: 0;
+ height: 64%;
+ background: repeating-linear-gradient(90deg, #f0fcff 0 1px, rgb(var(--clipper-color)) 1px 2px, transparent 2px 3.5px);
+}
+.clipper-blade::after {
+ top: 47%;
+ bottom: 0;
+ border-radius: 1px 1px 3px 3px;
+ background: linear-gradient(#fff, rgb(var(--clipper-color)) 48%, #3e5365);
+}
+#tourNav .edge-pin span {
+ top: 50% !important;
+ left: calc(50% + 20px);
+ transform: translateY(-50%);
+}
+#tourNav .edge-pin.edge-right span { left: auto; right: calc(50% + 20px); transform: translateY(-50%); }
+@keyframes clipper-pulse {
+ 0%, 100% { opacity: .33; transform: scale(.93); }
+ 50% { opacity: .95; transform: scale(1.22); }
+}
+@media (max-width: 700px) {
+ #tourNav button { --clipper-size: 23px; }
+ #tourNav .door-dot span { top: calc(50% + 21px); }
+}
+@media (prefers-reduced-motion: reduce) {
+ .nav-clipper::before { animation: none; opacity: .6; }
+}

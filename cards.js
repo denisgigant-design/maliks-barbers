@@ -8,14 +8,14 @@
  const mobile = mobileTour, device = mobile ? 'mobile' : 'desktop';
  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
  const key = 'maliks-card-drafts-v1';
- const layoutKey = platform => 'maliks-wall-mount-layout-v1-' + platform;
+ const layoutKey = platform => 'maliks-wall-mount-layout-v2-' + platform;
  const publishedLayouts = window.MALIKS_PANEL_PRESETS;
  const tracks = window.MALIKS_WALL_TRACKS[device];
  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
  const stops = {hours: 85, contact: 131, prices: 206};
  const mountDefaults = {depth:0, yaw:0, pitch:0, roll:0, bend:0};
  const enterRadius = FPS / 2, leaveRadius = enterRadius + 3;
- const signDuration = 1000;
+ const signDepartureDelay = 1000;
  const titles = {hours: 'Open Times', contact: 'Booking', prices: 'Pricing'};
  const assets = {
   hours:   {sign: 'neon-open-times.png', card: 'opening-hours-card.png'},
@@ -39,7 +39,8 @@
   return base;
  }
  function readLayout(platform) {
-  const local = stored(layoutKey(platform));
+  const saved = stored(layoutKey(platform));
+  const local = saved.basedOn === JSON.stringify(publishedLayouts[platform]) ? saved.panels || {} : {};
   return Object.fromEntries(actions.map(action => {
    const base = publishedPanel(platform, action);
    const draft = local[action] || {};
@@ -49,7 +50,8 @@
  const settings = readLayout(device);
  function persist() {
   try {
-   localStorage.setItem(layoutKey(device), JSON.stringify(settings));
+   const basedOn = JSON.stringify(publishedLayouts[device]);
+   localStorage.setItem(layoutKey(device), JSON.stringify({basedOn, panels: settings}));
   } catch { $('peStatus').textContent = 'Device storage is unavailable. Export the preset to keep these settings.'; }
  }
  let cards=[],selectedId=null,cardDrag=null;
@@ -71,7 +73,10 @@
  let active = null, route = null, trip = 0, travelRaf = 0;
  let hideTimer = 0, motion = null, originScroll = 0;
  let dragPanel = null, ignoreClick = false;
- let visit = null, signTimer = 0, signVisible = false;
+ const visits = Object.fromEntries(actions.map(action => [action, {
+  phase:'off', inRange:false, anchor:null, timer:0, fade:null
+ }]));
+ let lastScrollTop = scroller.scrollTop, scrolling = false, settleTimer = 0;
  let paintedFrame = null;
  for (const action of actions) {
   const sign = document.createElement('button');
@@ -155,7 +160,8 @@
   }
   const reference = smooth(stop);
   const poses = new Map();
-  for (let at = stop - leaveRadius; at <= stop + leaveRadius; at++) {
+  // Follow the real wall during the departure delay, including outside the arrival area.
+  for (let at = rows[0][0]; at <= rows[rows.length - 1][0]; at++) {
    const values = smooth(at);
    poses.set(at, values.map((v, i) => identity[i] + (v - reference[i])));
   }
@@ -185,39 +191,96 @@
   sign.hidden = false;
   return true;
  }
- function endVisit() {
-  clearTimeout(signTimer);
-  visit = null;
-  signVisible = false;
- }
- function visibleWall(at) {
-  if (editor.open || panelEditor.open || route || at === null) {
-   if (visit) endVisit();
-   const selected = $('pePanel').value;
-   return panelEditor.open && at !== null && Math.abs(at-stops[selected]) <= 1 ? selected : null;
+ function cancelDeparture(visit) {
+  clearTimeout(visit.timer);
+  if (visit.fade) {
+   visit.fade.onfinish = null;
+   visit.fade.cancel();
+   visit.fade = null;
   }
-  const near = (action, radius) => Math.abs(at-stops[action]) <= radius && Math.abs(frame-stops[action]) <= radius;
-  if (visit && !near(visit, leaveRadius)) endVisit();
-  if (!visit) {
-   visit = actions.find(action => near(action, enterRadius)) || null;
-   if (visit) {
-    signVisible = true;
-    signTimer = setTimeout(() => { signVisible = false; render(); }, signDuration);
+ }
+ function resetVisits() {
+  for (const visit of Object.values(visits)) {
+   cancelDeparture(visit);
+   visit.phase = 'off';
+   visit.inRange = false;
+   visit.anchor = null;
+  }
+ }
+ function revealWall(action, anchor) {
+  const visit = visits[action];
+  cancelDeparture(visit);
+  visit.phase = 'mounted';
+  visit.anchor = anchor;
+  visit.inRange = true;
+ }
+ function leaveWall(action) {
+  const visit = visits[action];
+  if (visit.phase !== 'mounted') return;
+  visit.phase = 'leaving';
+  visit.timer = setTimeout(() => {
+   const sign = signs.get(action);
+   const finish = () => {
+    visit.phase = 'off';
+    if (visit.fade) { visit.fade.cancel(); visit.fade = null; }
+    render();
+   };
+   if (sign.hidden || reduced.matches) { finish(); return; }
+   visit.fade = sign.animate([{opacity:1}, {opacity:0}], {duration:240, easing:'ease-out', fill:'forwards'});
+   visit.fade.onfinish = finish;
+  }, signDepartureDelay);
+ }
+ function wallVisibleAt(action, at) {
+  if (at === null) return false;
+  if (editor.open || panelEditor.open) {
+   return panelEditor.open && action === $('pePanel').value && Math.abs(at-stops[action]) <= 1;
+  }
+  const visit = visits[action];
+  const targetDistance = Math.abs(frame-stops[action]);
+  if (targetDistance > leaveRadius) visit.inRange = false;
+  if (!visit.inRange && targetDistance <= enterRadius && Math.abs(at-stops[action]) <= enterRadius && (!route || route === action)) {
+   revealWall(action, scrolling ? null : scroller.scrollTop);
+  }
+  return visit.phase !== 'off';
+ }
+ function settleWalls() {
+  clearTimeout(settleTimer);
+  scrolling = false;
+  for (const action of actions) {
+   const visit = visits[action];
+   if (visit.phase === 'mounted' && visit.inRange) visit.anchor = scroller.scrollTop;
+  }
+ }
+ function scrollWalls() {
+  const top = scroller.scrollTop, previous = lastScrollTop;
+  if (top === previous) return;
+  lastScrollTop = top;
+  scrolling = true;
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(settleWalls, 140);
+  if (editor.open || panelEditor.open) return;
+  const target = clamp(LAST * top / range(), 0, LAST);
+  for (const action of actions) {
+   const visit = visits[action], distance = Math.abs(target - stops[action]);
+   // An arriving swipe can settle anywhere near the wall. A new scroll from that spot is a departure.
+   if (visit.phase === 'mounted') {
+    if (visit.anchor === null ? distance > leaveRadius : Math.abs(top-visit.anchor) >= 1) leaveWall(action);
+   } else if (!route && visit.anchor !== null && distance <= enterRadius &&
+     Math.abs(top-visit.anchor) < Math.abs(previous-visit.anchor)) {
+    revealWall(action, null);
    }
   }
-  return signVisible ? visit : null;
  }
  function showPins(sw, sh) {
   const at = paintedFrame;
   const outside = at === null || at <= exteriorEnd;
   const editing = editor.open || panelEditor.open;
-  const visible = visibleWall(at);
   door.hidden = editing || !outside || !!route;
   for (const button of pins) {
    const action = button.dataset.view;
    const sign = signs.get(action);
    const hadFocus = document.activeElement === sign || document.activeElement === button;
-   const wallVisible = action === visible && placeSign(action, at, sw, sh);
+   const wallVisible = wallVisibleAt(action, at) && !outside && placeSign(action, at, sw, sh);
    if (!wallVisible) sign.hidden = true;
    const expanded = active === action && !detail.hidden && !detail.inert;
    sign.setAttribute('aria-expanded', String(expanded));
@@ -349,6 +412,7 @@
    if (serial !== trip) return;
    cancelTravel();
    jump(end);
+   revealWall(action, scroller.scrollTop);
    showPanel(action, true, keyboard);
   };
   if (start === end || reduced.matches) { finish(); return; }
@@ -394,6 +458,8 @@
  }
  scroller.addEventListener('wheel', interruptTravel, {passive:true});
  scroller.addEventListener('touchmove', interruptTravel, {passive:true});
+ scroller.addEventListener('scroll', scrollWalls, {passive:true});
+ scroller.addEventListener('scrollend', settleWalls);
  scroller.addEventListener('pointerdown', e => { if (e.target === scroller) interruptTravel(); });
  scroller.addEventListener('keydown', e => {
   if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key)) interruptTravel();
@@ -492,6 +558,7 @@
   if (editor.open) editor.close();
   if ($('panel').open) $('panel').close();
   panelEditor.show();
+  resetVisits();
   $('pePanel').value = active || 'hours';
   choosePanel($('pePanel').value);
  };
@@ -551,7 +618,7 @@
   if(editor.open){editor.close();return}
   if(panelEditor.open)panelEditor.close();
   cancelTravel();hidePanel(false);
-  editor.show();layer.classList.add('editing-cards');selectedId=selected()?.id||cards[0]?.id;fields();
+  editor.show();resetVisits();layer.classList.add('editing-cards');selectedId=selected()?.id||cards[0]?.id;fields();
  };
  editor.onclose=()=>{layer.classList.remove('editing-cards');cardDrag=null;render()};
  $('cardsDone').onclick=()=>editor.close();
