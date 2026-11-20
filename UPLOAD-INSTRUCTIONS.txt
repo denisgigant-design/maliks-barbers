@@ -1,38 +1,48 @@
-MALIK'S BARBERS — PRICING BARBER CONTROLS (20 NOV 2026)
+MALIK'S BARBERS — SITE-WIDE PRESETS + MOVEABLE EDITORS + iPHONE TRANSPARENT VIDEO
+20 November 2026
 
-UPLOAD THESE THREE FILES TO YOUR GITHUB REPOSITORY ROOT
-(the same place as index.html):
-  1. panel-presets.js                  [replace existing file]
-  2. barber-preset.js                  [new file]
-  3. pricing-barber-transparent.webm   [replace existing if present]
+UPLOAD THESE FIVE FILES TO YOUR EXISTING GITHUB REPOSITORY ROOT
+(the same folder as index.html; replace same-name files):
+  1. panel-presets.js                  REPLACE (user's uploaded (6)/(7) layouts preserved)
+  2. barber-preset.js                  REPLACE / ADD (public desktop/mobile barber defaults)
+  3. pricing-barber-transparent.webm   REPLACE / ADD (Chromium/Firefox alpha video)
+  4. pricing-barber-alpha-packed.mp4   ADD (iPhone / Safari H.264 backup with RGB+alpha side by side)
+  5. pricing-barber-poster.png         ADD (transparent placeholder during startup)
 
-Do NOT delete any other site files. This package leaves existing wall-sign
-positions, booking/pricing/opening-hours cards, and the native tour unchanged.
+Do NOT upload the ZIP itself to GitHub. Extract it and upload those five files.
+Leave index.html, lighting.js, cards.js, shop.css, ios-compat.js,
+walkthrough.mp4 and mobile-tour.mp4 unchanged.
 
-USE
-1. Open the website on your phone or desktop and navigate to PRICING.
-2. Tap "Panels", then choose "Pricing & services" in the panel selector.
-3. A "Barber video placement" editor appears IMMEDIATELY BELOW the selector.
-4. Left/right, up/down, 4 arrow nudge buttons, size, depth, layer order,
-   shadow strength and on/off control are available.
-5. Controls save locally on the device. Both Desktop and Mobile can be edited
-   using the "Preset to edit" selector (live preview only on matching device).
-6. Tap "Export barber-preset.js". This exports BOTH mobile and desktop
-   placement values. Replace barber-preset.js on GitHub with the downloaded file
-   to make the positions public for all visitors.
+PRESETS
+- Both user-uploaded files panel-presets (6).js and (7).js are byte-for-byte identical.
+- The desktop/mobile Opening Hours, Bookings and Pricing panel and neon wall-sign
+  positions in those files are the published defaults for ALL visitors.
+- Barber defaults from the earlier package are desktop x=70% / size=86% and
+  mobile x=67% / size=57%. The uploads do not contain a newer separate
+  barber-preset.js. If you later fine-tune him in Panels > Pricing, choose
+  Export barber-preset.js and replace the published barber-preset.js.
+- Customer-facing placements are read from the published JS. Local device changes
+  are previews until exported and uploaded.
 
-The existing "Export site preset" button still exports panel-presets.js with
-its barber feature preserved. It is SEPARATE from Export barber-preset.js.
+MOVEABLE CUSTOMIZATION DIALOGS
+- Open Panels, Cards or Lighting.
+- Use the new ◀ / ▶ arrows in the dialog header to dock the editor left/right.
+- Drag its title/header horizontally to position anywhere between the two sides.
+- The editor's horizontal position is remembered privately on that device.
+- Dragging the editor does NOT modify the published customer-facing panel layout.
 
-VIDEO
-- pricing-barber-transparent.webm contains a real VP9 alpha channel.
-- The clip runs once on opening the pricing panel and holds on the last frame.
-- It is not a GIF, and no background-removal processing runs on visitors' phones.
+TRANSPARENT VIDEO / iPHONE COMPATIBILITY
+- On compatible non-Apple browsers, the actual transparent VP9 WebM plays.
+- On Apple WebKit (Safari and Chrome on iPhone/iPad; macOS Safari), an H.264 MP4
+  contains the colour image in the left half and its grayscale alpha mask on the
+  right. A small WebGL shader restores the actual transparency at playback time.
+- The MP4 is conventional H.264/yuv420p with a fast-start atom, muted and
+  playsinline. If the browser blocks playback or WebGL is unavailable, a
+  transparent still PNG remains visible instead of a black rectangle.
+- The separate site's walkthrough.mp4/mobile-tour.mp4 use their existing iOS
+  initialization in ios-compat.js (muted/playsinline + first-touch unlock).
+- The generated fallback MP4, source WebM and poster were inspected. Actual
+  physical Safari/Chrome iPhone playback was NOT tested in this environment;
+  after uploading, please verify once on a real iPhone.
 
-DEFAULTS
-Desktop: positioned farther right (70%), height 86%.
-Mobile: 67% from left, height 57% so it stays smaller behind the card.
-Mobile WELCOME clipper slightly smaller (17px to 13px).
-
-If your device still shows the previous version after upload, refresh the page
-from the browser or open it in a new private tab to bypass cached site files.
+NOTE: No GIF, paid plugin, new HTML or full website rebuild is used here.
