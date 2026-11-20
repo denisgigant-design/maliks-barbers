@@ -72,13 +72,15 @@
  const signs = new Map();
  const mounts = new Map();
  let active = null, route = null, trip = 0, travelRaf = 0;
+ let travelSeekAt = 0;
+ const travelFps = iosWebkit ? 25 : 30; // Prevent iPhone video/decode and layout saturation.
  let hideTimer = 0, motion = null, originScroll = 0;
  let dragPanel = null, ignoreClick = false;
  const visits = Object.fromEntries(actions.map(action => [action, {
   phase:'off', inRange:false, anchor:null, timer:0, fade:null
  }]));
  let lastScrollTop = scroller.scrollTop, scrolling = false, settleTimer = 0;
- let paintedFrame = null, lastNativeFrame = 0;
+ let paintedFrame = null, lastNativeFrame = 0, landingFrame = null;
  for (const action of actions) {
   const sign = document.createElement('button');
   sign.type = 'button';
@@ -262,8 +264,9 @@
   scrolling = true;
   clearTimeout(settleTimer);
   settleTimer = setTimeout(settleWalls, 140);
-  if (editor.open || panelEditor.open) return;
+  if (editor.open || panelEditor.open || route) return;
   const target = clamp(LAST * top / range(), 0, LAST);
+  if (landingFrame !== null && Math.abs(target-landingFrame) > 1) landingFrame = null;
   for (const action of actions) {
    const visit = visits[action], distance = Math.abs(target - stops[action]);
    // An arriving swipe can settle anywhere near the wall. A new scroll from that spot is a departure.
@@ -301,7 +304,9 @@
    button.style.top = action === 'hours' ? '17%' : '78%';
   }
  }
+ let draftsMounted = false;
  function renderDrafts(sw, sh) {
+  if (!editor.open && !draftsMounted) return;
   const seen = new Set();
   if (editor.open) for (const card of cards) {
    if (frame < card.start || frame > card.end) continue;
@@ -321,6 +326,7 @@
    Object.assign(node.style, {width: width+'px', height: height+'px', left: (sw-width)*card.x/100+'px', top: (sh-height)*card.y/100+'px'});
   }
   layer.querySelectorAll('[data-card]').forEach(node => { if (!seen.has(node.dataset.card)) node.remove(); });
+  draftsMounted = seen.size > 0;
  }
  function render() {
   const {width:sw, height:sh} = layer.getBoundingClientRect();
@@ -398,58 +404,109 @@
   render();
   if (focus) detail.focus({preventScroll:true});
  }
+ // A single guided navigation runs at a controlled update rate. Previously every
+ // requestAnimationFrame tried another video seek (often 60 seeks/second), while
+ // scroll events immediately sought AGAIN. Mobile WebKit cannot decode that load.
  function cancelTravel() {
   trip++;
   cancelAnimationFrame(travelRaf);
   travelRaf = 0;
-  if (movie.dataset.guided) { movie.pause(); delete movie.dataset.guided; }
+  if (movie.dataset.guided) {
+   movie.pause();
+   delete movie.dataset.guided;
+  }
+  if (movie.playbackRate !== 1) movie.playbackRate = 1;
   route = null;
+  document.documentElement.classList.remove('tour-navigating');
  }
  function navigate(action, keyboard = false) {
+  if (!stops.hasOwnProperty(action)) return;
   cancelTravel();
+  landingFrame = null;
   const serial = trip, start = frame, end = stops[action];
   route = action;
+  document.documentElement.classList.add('tour-navigating');
   if (panelEditor.open) panelEditor.close();
-  if (active && (start !== end || active !== action)) hidePanel();
+  if (active && (start !== end || active !== action)) hidePanel(false);
   render();
   const finish = () => {
    if (serial !== trip) return;
+   // No lingering queued seeking/playback is allowed to drag the image back
+   // after a new section's card opens.
    cancelTravel();
    jump(end);
+   present(end);
+   // Ignore stale decoded frames from the previous view until the final seek lands.
+   landingFrame = end;
    revealWall(action, scroller.scrollTop);
    showPanel(action, true, keyboard);
   };
-  if (start === end || reduced.matches || (iosWebkit && (movie.readyState < 2 || movie.error))) { finish(); return; }
+  if (start === end || reduced.matches) { finish(); return; }
+  movie.dataset.guided = 'true'; // Suspend normal per-frame seeking while travelling.
+  let lastPaint = 0;
+  function moveTo(value, now) {
+   if (now - lastPaint < 1000 / travelFps && Math.abs(value-end) > .7) return;
+   lastPaint = now;
+   // Let the scroll listener do ONE setFrame/lighting update per tick.
+   // In particular do not call jump(), which previously duplicated the work.
+   scroller.scrollTop = clamp(value,0,LAST) / LAST * range();
+  }
+  // Smooth reverse transitions and unavailable-video fallback: compositor-led
+  // scroll, with at most one sparse, in-flight video seek on iOS. This avoids
+  // overlapping seek requests, dropped frames and the sudden iPhone jump.
+  let scrubbing = false;
   const scrub = () => {
-   const from = frame, begun = performance.now();
-   const duration = Math.max(240, Math.abs(end-from) * 1000/FPS);
+   if (serial !== trip || scrubbing) return;
+   scrubbing = true;
+   cancelAnimationFrame(travelRaf);
+   travelRaf = 0;
+   try { movie.pause(); movie.playbackRate = 1; } catch (_) {}
+   const from = clamp(LAST * scroller.scrollTop / range(),0,LAST);
+   const begun = performance.now();
+   const duration = clamp(460 + Math.abs(end-from) * 10, 700, 1650);
+   const seekGap = iosWebkit ? 170 : 120;
    const step = now => {
     if (serial !== trip) return;
     const t = clamp((now-begun)/duration,0,1);
     if (t >= 1) { finish(); return; }
-    jump(Math.round(from+(end-from)*t*t*(3-2*t)));
+    const ease = t < .5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+    const value = from + (end-from)*ease;
+    moveTo(value, now);
+    if (movie.readyState >= 1 && !movie.error && !movie.seeking &&
+        now - travelSeekAt >= seekGap) {
+     travelSeekAt = now;
+     try { movie.currentTime = clamp(value,0,LAST)/FPS; } catch (_) {}
+    }
     travelRaf = requestAnimationFrame(step);
    };
    travelRaf = requestAnimationFrame(step);
   };
-  if (end <= start || movie.readyState < 2) { scrub(); return; }
-  movie.dataset.guided = 'true';
-  movie.currentTime = start/FPS;
-  let lastTime = -1, advanced = performance.now();
+  if (end < start || movie.error || movie.readyState < 2) { scrub(); return; }
+  // Forward travel follows real decoded footage instead of frame-by-frame seeks.
+  // A click is a user gesture, so muted inline playback is allowed on most iPhones.
+  // If blocked/buffered, fall back to the bounded scrub above, not an abrupt jump.
+  try { movie.pause(); movie.playbackRate = iosWebkit ? 1.75 : 2; } catch (_) { scrub(); return; }
+  if (Math.abs(movie.currentTime - start/FPS) > .10) {
+   try { movie.currentTime = start/FPS; } catch (_) { scrub(); return; }
+  }
+  let lastMedia = movie.currentTime, lastAdvance = performance.now(), hasPlayed = false;
   const follow = now => {
    if (serial !== trip) return;
-   const t = movie.currentTime;
-   if (t !== lastTime) { advanced = now; lastTime = t; }
-   if (t*FPS >= end-.45 || movie.ended) { finish(); return; }
-   if (!Number.isFinite(t) || now-advanced > 900) {
-    movie.pause(); delete movie.dataset.guided; scrub(); return;
-   }
-   const next = Math.round(t*FPS);
-   if (next !== frame) jump(next);
+   const at = movie.currentTime;
+   if (at > lastMedia + .008) { lastAdvance = now; lastMedia = at; }
+   if (at*FPS >= end-.35 || movie.ended) { finish(); return; }
+   if (movie.error || (!hasPlayed && now - lastAdvance > 550) ||
+       (hasPlayed && now - lastAdvance > 650)) { scrub(); return; }
+   moveTo(Math.max(start, Math.min(end, at*FPS)), now);
    travelRaf = requestAnimationFrame(follow);
   };
-  movie.play().catch(() => { /* The progress monitor falls back to frame scrubbing. */ });
-  travelRaf = requestAnimationFrame(follow);
+  try {
+   const playing = movie.play();
+   if (playing && typeof playing.then === 'function') {
+    playing.then(() => { hasPlayed = true; }, () => { if (serial === trip) scrub(); });
+   } else hasPlayed = true;
+   travelRaf = requestAnimationFrame(follow);
+  } catch (_) { scrub(); }
  }
  door.addEventListener('click', e => navigate('hours', e.detail === 0));
  for (const pin of pins) pin.addEventListener('click', e => navigate(pin.dataset.view, e.detail === 0));
@@ -458,6 +515,7 @@
   if (sign && !editor.open && !panelEditor.open) navigate(sign.dataset.action, e.detail === 0);
  });
  function interruptTravel() {
+  landingFrame = null;
   if (route) { cancelTravel(); render(); }
  }
  scroller.addEventListener('wheel', interruptTravel, {passive:true});
@@ -657,12 +715,21 @@
   const href=URL.createObjectURL(new Blob([JSON.stringify({version:1,fps:FPS,video:movie.getAttribute('src'),cards},null,2)],{type:'application/json'}));
   const a=document.createElement('a');a.href=href;a.download='maliks-cards.json';a.click();setTimeout(()=>URL.revokeObjectURL(href),10000);
  };
+ let renderPending = false;
+ function scheduleRender() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => { renderPending = false; render(); });
+ }
  function present(at) {
   const next = clamp(at, 0, LAST);
+  if (landingFrame !== null) {
+   if (Math.abs(next-landingFrame) > 1) return;
+   landingFrame = null;
+  }
   if (next === paintedFrame) return;
   paintedFrame = next;
-  const {width, height} = layer.getBoundingClientRect();
-  showPins(width, height);
+  scheduleRender();
  }
  if (typeof movie.requestVideoFrameCallback === 'function') {
   const onVideoFrame = (_, metadata) => {
@@ -693,7 +760,7 @@
   if (iosWebkit && (movie.readyState < 2 || movie.error ||
       (typeof movie.requestVideoFrameCallback === 'function' &&
        performance.now() - lastNativeFrame > 300))) present(frame);
-  render();
+  scheduleRender();
  });
  if (typeof ResizeObserver === 'function') new ResizeObserver(render).observe(layer);
  else window.addEventListener('resize',render, {passive:true});

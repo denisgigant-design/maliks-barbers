@@ -403,3 +403,21 @@ dialog:not([open]) {display:none!important;}
   .clipper-blade::before { background:repeating-linear-gradient(90deg,#f0fcff 0 1px,#b5d2d7 1px 2px,transparent 2px 3.5px); }
   .clipper-blade::after { background:linear-gradient(#fff,#d2e1e0 48%,#3e5365); }
 }
+
+/* Smoother guided wall transitions. Leave published positions and sizes intact. */
+.tour-navigating .nav-clipper,
+.tour-navigating .nav-clipper::before { animation-play-state:paused!important; }
+.tour-navigating .wall-sign { pointer-events:none; }
+@media (prefers-reduced-motion: no-preference) {
+  #scenePanel .illustrated-menu { backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+}
+/* iOS WebKit: avoid animating a full-screen blurred background and multiple
+   clipper brightness filters during a hardware-decoded video transition. */
+.ios-webkit .stage::before { filter:blur(16px) brightness(.55); }
+.ios-webkit #tourNav .nav-clipper {
+  animation:malik-clipper-ios 2.15s ease-in-out infinite;
+}
+@keyframes malik-clipper-ios {
+  0%,100% { transform:translate(-50%,-50%) rotate(var(--clipper-turn)) scale(.97); opacity:.93; }
+  50% { transform:translate(-50%,-50%) rotate(var(--clipper-turn)) scale(1.07); opacity:1; }
+}

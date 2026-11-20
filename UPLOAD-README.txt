@@ -1,33 +1,33 @@
-MALIK'S BARBERS – iPhone Safari/Chrome compatibility update
-20 November 2026
+MALIK'S BARBERS — SMOOTHER NAVIGATION (20 NOVEMBER 2026)
 
-GitHub Pages deployment:
+GitHub Pages installation
 1. Extract this ZIP.
-2. Upload/replace ALL included files in the ROOT of the existing
-   denisgigant-design/maliks-barbers repository (same folder as index.html).
-3. Do NOT delete your existing lighting.js, walkthrough.mp4, mobile-tour.mp4,
-   storefront.jpg, mobile-front.jpg, or other existing site assets.
-4. Commit the changes. Open the published website on iPhone Safari or Chrome.
-   If it shows an old version, refresh the tab or reopen using the same URL
-   with ?iosfix=1 after the address (not part of the site source).
+2. Upload/replace all 19 supplied files in the ROOT of your existing
+   denisgigant-design/maliks-barbers repository (the folder with index.html).
+3. KEEP your existing lighting.js, walkthrough.mp4, mobile-tour.mp4,
+   storefront.jpg, mobile-front.jpg and other photos/videos. Do not delete them.
+4. Commit the upload. On iPhone, reopen the site and refresh; a fresh test URL
+   can end in ?smooth=2 to avoid a cached HTML page.
 
-Cross-browser fixes:
-- Adds ios-compat.js BEFORE lighting.js to polyfill structuredClone, dialog
-  editors and other functions missing on older iOS WebKit versions.
-- Makes the scroll container momentum-scrollable on iPhone and provides a
-  guarded touch-swipe recovery if Safari blocks native scrolling.
-- Lets touches pass through the video surface to the page's scroll area.
-- Unlocks inline muted video from a real iPhone touch gesture.
-- Keeps walkthrough controls and pop-up cards responsive even if Safari's
-  video decoder delays the frame callbacks or refuses to preload the film.
-- Provides PNG fallbacks for older iPhones without WebP support.
-- Provides CSS fallbacks for older Safari versions without aspect-ratio,
-  container units, individual translate and newer RGB colour syntax.
-- Preserves existing video editing, lighting settings, published desktop and
-  mobile panel presets, neon signs, card styling and the Android experience.
-- Forces CSS/JS refresh via updated version tokens in index.html.
+This update changes the existing website, not its design or the published
+wall/sign/card positions. Your Panels and Cards editors remain available.
 
-This is an upgrade ZIP, not a new project; the MP4s and photography remain in
-place in the original repository. This ZIP cannot correct an MP4 encoded with
-an iPhone-unsupported codec. For iPhone video playback specifically, both
-videos should be MP4/H.264 (AVC) with yuv420p pixel format.
+Changes
+- Clickable clippers and wall signs now use bounded, guided transitions.
+- Forward travel uses continuous inline video playback when supported.
+- Reverse/unavailable-video travel uses smooth easing with limited media seeks.
+- On iPhone, the seek fallback never spams concurrent requests.
+- Scroll/lighting updates are paced and no longer duplicated per animation tick.
+- Old decoded video frames cannot replace the wall view after a successful arrival.
+- A stalled iPhone video no longer makes the click jump instantly to the end.
+- iOS clipper animation and blurred scene backdrop use lighter GPU effects.
+- Motion-reduction preference and user interruption remain supported.
+- Versioned CSS/JavaScript references force a new asset load after publishing.
+
+Testing: JavaScript syntax checks, ZIP integrity, browser-based desktop and
+emulated iPhone navigation checks, including a simulated unavailable-video
+case. The earlier real-video browser simulation also passed. Not tested on a
+physical iPhone; final performance depends on iOS hardware and MP4 encoding.
+
+Do not upload patch_smooth.py, test_smooth.py, test_playback.py or test_video.mp4;
+these are internal work files and are intentionally NOT in this ZIP.
