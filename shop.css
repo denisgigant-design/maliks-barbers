@@ -358,3 +358,48 @@
 
 /* Only keep compositing hints while a sign is active, reducing off-screen GPU work. */
 .wall-sign[hidden] {will-change:auto;}
+
+/* November 20 – Safari/WebKit touch, layout and media resilience. */
+html,body { -webkit-text-size-adjust:100%; }
+#scroller {
+  overflow-y:scroll;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-y pinch-zoom;
+  min-height:0;
+  scrollbar-width:none;
+}
+.scene video { pointer-events:none; }
+#tourNav, #cardLayer { -webkit-tap-highlight-color:transparent; }
+dialog:not([open]) {display:none!important;}
+/* Safari before 16.4 lacks individual translate; keep cards centred. */
+@supports not (translate: -50% -50%) {
+  #scenePanel { transform:translate(-50%, -50%); }
+}
+/* Safari before 16 doesn't support CSS container-relative units. */
+@supports not (width: 1cqw) {
+  #scenePanel .illustrated-menu {
+    width:auto;
+    max-width:100%;
+    max-height:100%;
+    height:100%;
+    object-fit:contain;
+  }
+}
+@supports (-webkit-touch-callout:none) {
+  html,body { overscroll-behavior:auto; }
+  main#scroller { height:100vh; height:100dvh; overflow-y:scroll!important; }
+  #scroller .stage, #scroller .scene { touch-action:pan-y pinch-zoom; }
+  #tourNav button, .wall-sign { touch-action:pan-y pinch-zoom; }
+}
+/* iOS 14 and below: the tour still needs a real height without aspect-ratio. */
+@supports not (aspect-ratio: 1 / 1) {
+  .scene { height:0; padding-top:56.25%; }
+  html.mobile-tour .scene { height:0; padding-top:177.7778%; }
+}
+/* Keep the clipper controls visible on WebKit without CSS Color 4. */
+@supports not (color: rgb(255 255 255 / .7)) {
+  .nav-clipper::before { background:rgba(240,248,246,.75); }
+  .clipper-grip { border-color:#d2e7e0; background:linear-gradient(110deg,#fff,#a0bdb9 45%,#26383b); }
+  .clipper-blade::before { background:repeating-linear-gradient(90deg,#f0fcff 0 1px,#b5d2d7 1px 2px,transparent 2px 3.5px); }
+  .clipper-blade::after { background:linear-gradient(#fff,#d2e1e0 48%,#3e5365); }
+}

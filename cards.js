@@ -5,6 +5,8 @@
  const door = nav.querySelector('[data-enter]');
  const pins = [...nav.querySelectorAll('[data-view]')];
  const mobile = mobileTour, device = mobile ? 'mobile' : 'desktop';
+ const iosWebkit = document.documentElement.classList.contains('ios-webkit');
+ const artExt = document.documentElement.classList.contains('no-webp') ? '.png' : '.webp';
  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
  const key = 'maliks-card-drafts-v1';
  const layoutKey = platform => 'maliks-wall-mount-layout-v2-' + platform;
@@ -17,9 +19,9 @@
  const signDepartureDelay = 1000;
  const titles = {hours: 'Open Times', contact: 'Booking', prices: 'Pricing'};
  const assets = {
-  hours:   {sign: 'neon-open-times.webp', card: 'opening-hours-card.webp'},
-  contact: {sign: 'neon-booking.webp', card: 'bookings-card.webp'},
-  prices:  {sign: 'neon-pricing.webp', card: 'pricing-card.webp'}
+  hours:   {sign: 'neon-open-times' + artExt, card: 'opening-hours-card' + artExt},
+  contact: {sign: 'neon-booking' + artExt, card: 'bookings-card' + artExt},
+  prices:  {sign: 'neon-pricing' + artExt, card: 'pricing-card' + artExt}
  };
  const popoverCopy = {
   hours: 'Opening hours. Monday to Wednesday, 10 am to 7 pm. Thursday and Friday, 10 am to 8 pm. Saturday, 9 am to 7 pm. Sunday, 10 am to 6 pm.',
@@ -76,7 +78,7 @@
   phase:'off', inRange:false, anchor:null, timer:0, fade:null
  }]));
  let lastScrollTop = scroller.scrollTop, scrolling = false, settleTimer = 0;
- let paintedFrame = null;
+ let paintedFrame = null, lastNativeFrame = 0;
  for (const action of actions) {
   const sign = document.createElement('button');
   sign.type = 'button';
@@ -227,7 +229,7 @@
     if (visit.fade) { visit.fade.cancel(); visit.fade = null; }
     render();
    };
-   if (sign.hidden || reduced.matches) { finish(); return; }
+   if (sign.hidden || reduced.matches || typeof sign.animate !== 'function') { finish(); return; }
    visit.fade = sign.animate([{opacity:1}, {opacity:0}], {duration:240, easing:'ease-out', fill:'forwards'});
    visit.fade.onfinish = finish;
   }, signDepartureDelay);
@@ -361,7 +363,7 @@
   active = null;
   detail.inert = true;
   const done = () => { detail.hidden = true; stopMotion(); };
-  if (animate && !reduced.matches) {
+  if (animate && !reduced.matches && typeof detail.animate === 'function') {
    motion = detail.animate([{opacity, transform}, {opacity: 0, transform:'translateY(8px) scale(.965)'}],
     {duration:180, easing:'ease-in', fill:'forwards'});
    motion.onfinish = done;
@@ -388,7 +390,7 @@
   detail.hidden = false;
   detail.inert = false;
   applyPanelStyle();
-  if (animate && !reduced.matches) {
+  if (animate && !reduced.matches && typeof detail.animate === 'function') {
    const from = action === 'contact' ? 'translateX(-10px)' : action === 'prices' ? 'translateX(10px)' : 'translateY(10px)';
    motion = detail.animate([{opacity:0, transform:from+' scale(.955)'}, {opacity:1, transform:'none'}],
     {duration:310, easing:'cubic-bezier(.18,.76,.23,1)'});
@@ -417,7 +419,7 @@
    revealWall(action, scroller.scrollTop);
    showPanel(action, true, keyboard);
   };
-  if (start === end || reduced.matches) { finish(); return; }
+  if (start === end || reduced.matches || (iosWebkit && (movie.readyState < 2 || movie.error))) { finish(); return; }
   const scrub = () => {
    const from = frame, begun = performance.now();
    const duration = Math.max(240, Math.abs(end-from) * 1000/FPS);
@@ -613,7 +615,8 @@
   render();
  }
  function add(shape){
-  const c={id:crypto.randomUUID(),shape,start:frame,end:LAST,x:50,y:40,size:shape==='square'?24:46,text:''};
+  const id = crypto && typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : 'card-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  const c={id,shape,start:frame,end:LAST,x:50,y:40,size:shape==='square'?24:46,text:''};
   cards.push(c);selectedId=c.id;saveCards();fields();
  }
  $('cardsBtn').onclick=()=>{
@@ -663,6 +666,7 @@
  }
  if (typeof movie.requestVideoFrameCallback === 'function') {
   const onVideoFrame = (_, metadata) => {
+   lastNativeFrame = performance.now();
    present(Math.round(metadata.mediaTime * FPS));
    movie.requestVideoFrameCallback(onVideoFrame);
   };
@@ -683,7 +687,15 @@
   movie.addEventListener('timeupdate', sample);
   sample();
  }
- scroller.addEventListener('tourframe',render);
- new ResizeObserver(render).observe(layer);
+ scroller.addEventListener('tourframe', () => {
+  // Old iOS does not decode seek frames before a user gesture; keep the tour
+  // controls responsive even when the native video cannot report its frame.
+  if (iosWebkit && (movie.readyState < 2 || movie.error ||
+      (typeof movie.requestVideoFrameCallback === 'function' &&
+       performance.now() - lastNativeFrame > 300))) present(frame);
+  render();
+ });
+ if (typeof ResizeObserver === 'function') new ResizeObserver(render).observe(layer);
+ else window.addEventListener('resize',render, {passive:true});
  render();
 })();
