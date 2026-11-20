@@ -7,11 +7,6 @@
 .shop-card h2{font:normal clamp(30px,5vw,52px)/1.1 Georgia,serif;letter-spacing:-.035em;margin:.32em 0 .65em}
 .shop-card dl{margin:0}.shop-card dl>div{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 2px;border-bottom:1px solid #dfcc9926}.shop-card dl>div:last-child{border:0}
 .shop-card dd{margin:0;color:#eed398;white-space:nowrap;font-variant-numeric:tabular-nums}.shop-card .today{background:#d3b97020;border-radius:8px;padding-inline:10px}.shop-card small{font-size:.65rem;text-transform:uppercase;color:#ecd297}.shop-card address{font-style:normal;font-size:1.12em}.shop-card p{color:#d2dcd4}.shop-phone{color:#f2d79e;font:1.6em Georgia,serif;text-decoration:none}.shop-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.shop-actions a{border:1px solid #d6b979;border-radius:24px;color:#f5e1b7;padding:11px 21px;text-decoration:none}.shop-actions a:first-child{background:#e2c483;color:#102319;font-weight:bold}
-#shopDialog{inset:0;margin:auto;width:min(95vw,620px);height:fit-content;max-height:90svh;padding:0;border:0;background:transparent;color:white;border-radius:26px}
-#shopDialog::backdrop{background:#03100bd1;backdrop-filter:blur(4px)}
-#dismissShop{position:absolute;z-index:1;top:10px;right:12px;border:1px solid #cbb37988;background:#11281e;width:38px;height:38px;font-size:22px;line-height:1}
-button.info-card[data-action]{pointer-events:auto;cursor:pointer;background:linear-gradient(135deg,#184231b5,#06150eb8);border-color:#dfc28caa;color:#fff7e7;font-family:Georgia,serif}
-button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-action]::after{content:"↗";color:#e3c487;font-size:.8em}
 
 /* Let the shop directory follow the video and controls at their natural height. */
 .tour-wrap .stage{height:auto}
@@ -27,48 +22,18 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 .left-dot::before{right:50%}.right-dot::before{left:50%;transform:rotate(180deg)}
 @keyframes shop-beacon{0%,100%{box-shadow:0 0 0 2px #16221899,0 0 0 0 #ffffff70}75%{box-shadow:0 0 0 2px #16221899,0 0 0 12px #ffffff00}}
 @media(prefers-reduced-motion:reduce){#tourNav button::after{animation:none}}
-#cardLayer:not(.editing-cards) button.info-card[data-action]{border:0;background:transparent;backdrop-filter:none;color:#fffaf1;font:900 clamp(14px,2.2cqw,31px)/1.04 "Arial Narrow",Arial,sans-serif;letter-spacing:.025em;text-transform:uppercase;text-shadow:0 2px 4px #000,0 0 14px #000,0 0 4px #000;overflow:visible}
-#cardLayer:not(.editing-cards) button.info-card[data-action]::after{content:"";display:block;width:28px;height:2px;margin:6px auto 0;background:#e2c384;box-shadow:0 1px 4px #000}
 
 .pinned-tour{position:sticky;top:0}.pinned-tour .stage{position:relative}.pinned-tour .shop-details{padding-top:0}
 #tourNav button::before{display:none}#tourNav button::after{width:18px;height:18px;background:#fff5;border:1px solid #fff9;backdrop-filter:blur(4px)}
 #tourNav button span{position:absolute;top:85%;white-space:nowrap;font:bold italic clamp(14px,2vw,27px) Georgia,serif;text-shadow:0 1px 5px #000,0 0 8px #000}
-#cardLayer:not(.editing-cards) button[data-action=hours]{display:flex;align-items:center;justify-content:center;gap:.2em;white-space:nowrap;text-transform:none;font:italic bold clamp(21px,3.4cqw,54px)/1 Georgia,serif;color:#fff6db}
-#cardLayer:not(.editing-cards) button[data-action=hours] em{font:bold italic .86em/1 Arial,sans-serif;color:#edc981}
-#cardLayer:not(.editing-cards) button[data-action=hours]::after{display:none}
-#scenePanel{position:absolute;z-index:5;translate:-50% -50%;width:min(31%,47vh);aspect-ratio:1;max-height:78%;overflow:auto;overscroll-behavior:contain;padding:clamp(12px,1.6vw,26px);border:1px solid #f5ecc978;border-radius:19%;background:#17231bd6;background:linear-gradient(140deg,#253c30a8,#0c1712b8);backdrop-filter:blur(15px);box-shadow:0 8px 25px #0004;scrollbar-width:thin}
-#scenePanel[hidden]{display:none}
-#scenePanel .shop-card{width:100%;padding:0;background:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none}
-#scenePanel .signature,#scenePanel .shop-card::before{display:none}#scenePanel h2{font:italic 1.45em Georgia,serif;margin:0 0 .45em;padding-right:1em}
-#scenePanel .shop-card dl>div{padding:.23em 0}#scenePanel[data-action=prices] dd{color:#ff9992;font-weight:bold}
-#scenePanel .close-scene{position:absolute;z-index:2;right:9%;top:4%;background:#13281ca8;border:0;border-radius:50%;width:30px;height:30px;font-size:21px}
-#leader{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}#leader line{stroke:#fff9;stroke-width:1.5}
-.mobile-tour #scenePanel{width:80%;font-size:14px}.scene{mask-image:none}
 
 
 #tourNav{z-index:4}
 #tourNav button[hidden]{display:none}
 #tourNav button span,.shop-card,#scenePanel,#cardLayer:not(.editing-cards) button[data-action=hours]{text-transform:uppercase}
-#scenePanel{aspect-ratio:auto;max-height:37%;border-radius:16px;padding:clamp(8px,1vw,16px);font-size:clamp(12px,1.1vw,17px)}
-#scenePanel h2{font:900 1.25em/1.05 Arial,sans-serif;margin:0 28px .4em 0;padding:0}
-#scenePanel .close-scene{top:4px;right:4px;width:26px;height:26px;line-height:1}
-#scenePanel[data-action=hours]{width:57%;max-height:32%}
-#scenePanel[data-action=hours] dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.25em .6em}
-#scenePanel[data-action=hours] dl>div{display:block;padding:.2em .35em}
-#hours,#contact,#scenePanel:is([data-action=hours],[data-action=contact]) .shop-card{color:#69ff8a}
+#hours,#contact{color:#69ff8a}
 #hours dd,#scenePanel[data-action=hours] dd{font-weight:900;color:white}
-#scenePanel[data-action=contact]{width:43%;max-height:31%}
-#scenePanel[data-action=contact] address{font-size:1em}
-#scenePanel[data-action=contact] p{margin:.25em 0;color:white}
-#scenePanel[data-action=contact] .shop-actions{margin-top:.35em}
-#scenePanel[data-action=contact] .shop-actions a{padding:.25em .8em}
-#scenePanel[data-action=prices]{aspect-ratio:1;max-height:78%}
-#prices,#prices dd,#scenePanel[data-action=prices] .shop-card,#scenePanel[data-action=prices] dd{color:#ff6269}
-.mobile-tour #scenePanel[data-action=hours]{width:88%}
-.mobile-tour #scenePanel[data-action=hours] dl{grid-template-columns:repeat(2,minmax(0,1fr))}
-.mobile-tour #scenePanel[data-action=contact]{width:78%}
-#cardLayer:not(.editing-cards) button[data-action=hours]{color:#69ff8a}
-#cardLayer:not(.editing-cards) button[data-action=hours] em{color:white}
+#prices,#prices dd{color:#ff6269}
 
 /* FINAL MALIK'S BARBERS OVERLAYS — native videos and lighting kept intact */
 #tourNav{z-index:4;overflow:hidden;pointer-events:none}
@@ -79,38 +44,6 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 #tourNav .left-dot span{color:#eccf98}
 #tourNav .right-dot span{color:#ff8989}
 #tourNav [hidden]{display:none!important}
-#leader{z-index:3}
-#leader line{stroke:rgba(255,248,221,.74);stroke-width:1.6;stroke-linecap:round;filter:drop-shadow(0 1px 2px #000a)}
-#cardLayer:not(.editing-cards) button.info-card[data-action]{background:none!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0!important;color:transparent!important;display:flex;align-items:center;justify-content:center;overflow:visible;text-shadow:none!important;min-width:0;min-height:0;border-radius:0}
-#cardLayer:not(.editing-cards) button.info-card[data-action]::after{display:none!important;content:none!important}
-#cardLayer:not(.editing-cards) button.info-card[data-action] img{height:100%;width:100%;object-fit:contain;display:block;filter:drop-shadow(0 2px 4px #0009) brightness(1.08);pointer-events:none;user-select:none;-webkit-user-drag:none}
-#cardLayer:not(.editing-cards) button.info-card[data-action]:focus-visible{outline:2px solid #ecd39f;outline-offset:3px}
-#scenePanel{z-index:5;width:min(38%,450px);aspect-ratio:auto;max-height:75%;overflow:auto;overscroll-behavior:contain;touch-action:none;user-select:none;-webkit-touch-callout:none;border:1px solid #e5cb9d82;border-radius:24px;padding:clamp(12px,1.4vw,22px);background:linear-gradient(138deg,rgba(42,46,43,.43),rgba(10,14,12,.48));backdrop-filter:blur(17px) saturate(1.05);-webkit-backdrop-filter:blur(17px) saturate(1.05);box-shadow:0 12px 30px #0005;color:#fffdf1;text-shadow:0 1px 4px #0009;font-size:clamp(11px,1.1vw,16px)}
-#scenePanel[hidden]{display:none}
-#scenePanel.moving{cursor:grabbing;border-color:#e6cd98;outline:1px solid #efd59d}
-#scenePanel .shop-card{width:100%;margin:0;padding:0;background:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none;overflow:visible}
-#scenePanel .signature,#scenePanel .shop-card::before{display:none}
-#scenePanel .shop-card h2{font-size:inherit;margin:0 0 .5em;padding:0;text-align:center;line-height:1}
-#scenePanel .panel-art{display:block;width:min(94%,450px);height:auto;max-height:70px;object-fit:contain;margin:0 auto}
-#scenePanel .shop-card dl{margin:0}
-#scenePanel .shop-card dl>div{padding:.29em 0;border-bottom:1px solid #dfcc9930;line-height:1.2;gap:8px}
-#scenePanel .shop-card dt{font-weight:780;letter-spacing:.02em;text-transform:uppercase}
-#scenePanel .shop-card dd{font-weight:850;white-space:nowrap}
-#scenePanel[data-action=hours]{width:min(73%,850px);max-height:35%;border-radius:25px}
-#scenePanel[data-action=hours] .shop-card dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 12px}
-#scenePanel[data-action=hours] .shop-card dl>div{display:flex;flex-direction:column;align-items:flex-start;padding:.12em .25em}
-#scenePanel[data-action=hours] .shop-card dt{font-weight:900;color:#64f1a1;line-height:1.1}
-#scenePanel[data-action=hours] .shop-card dd{font-weight:900;color:#fffefd;line-height:1.1}
-#scenePanel[data-action=hours] .today{background:#cba75b2c}
-#scenePanel[data-action=prices]{width:min(34%,430px);max-height:70%;aspect-ratio:auto}
-#scenePanel[data-action=prices] .shop-card dt,#scenePanel[data-action=prices] .shop-card dd{color:#ff7376;font-weight:900;text-transform:uppercase}
-#scenePanel[data-action=contact]{width:min(36%,440px);max-height:70%}
-#scenePanel[data-action=contact] .shop-card{color:#fbf6e9}
-#scenePanel[data-action=contact] address{font-size:1em;line-height:1.4;color:#fff}
-#scenePanel[data-action=contact] .shop-card p{margin:.45em 0;color:#e6e0d1}
-#scenePanel[data-action=contact] .shop-phone{color:#f6d997;font-weight:bold}
-#scenePanel[data-action=contact] .shop-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-#scenePanel[data-action=contact] .shop-actions a{padding:6px 10px;font-size:.9em}
 .shop-details .shop-card{background:linear-gradient(135deg,#3036319e,#1115118e);border-color:#d3bb8466}
 .shop-details .shop-card h2{text-transform:uppercase}
 .shop-details #hours dt{color:#71e6a4}.shop-details #hours dd{color:#fffdf2;font-weight:bold}
@@ -119,20 +52,12 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
  #tourNav button{width:38px;height:38px}
  #tourNav button::after{width:15px;height:15px}
  #tourNav button span{font-size:10px;letter-spacing:0}
- #scenePanel{padding:10px 12px;font-size:clamp(10px,2.5vw,14px);max-height:66%;border-radius:18px}
- #scenePanel[data-action=hours]{width:87%;max-height:50%;border-radius:21px}
- #scenePanel[data-action=hours] .shop-card dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}
- #scenePanel[data-action=contact],#scenePanel[data-action=prices]{width:82%;max-height:68%}
- #scenePanel .panel-art{max-height:46px}
- #scenePanel[data-action=contact] .shop-actions a{font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){#tourNav button::after{animation:none}}
 
 #tourNav{z-index:7}
-#scenePanel .panel-art{filter:drop-shadow(0 0 3px #16673d66) brightness(1.18)}
 
 /* === MALIK'S BARBERS / WALL LETTERING + EDGE NAVIGATION + PANEL STUDIO === */
-#leader{display:none!important}
 #tourNav{z-index:7;overflow:hidden;pointer-events:none}
 #tourNav button{pointer-events:auto;width:43px;height:43px;transition:left .35s ease,top .35s ease}
 #tourNav button[hidden]{display:none!important}
@@ -146,34 +71,6 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 #tourNav .edge-pin[data-view=prices] span{color:#ff9b9b}
 #tourNav .edge-pin[data-view=hours] span{color:#8fe8b3}
 #cardLayer{z-index:3}
-#cardLayer:not(.editing-cards) button.info-card.wall-lettering{overflow:visible!important;cursor:pointer;pointer-events:auto;touch-action:manipulation;position:absolute;background:none!important;border:none!important;text-shadow:none!important;box-shadow:none!important;isolation:isolate;min-height:0;min-width:0;white-space:nowrap}
-#cardLayer:not(.editing-cards) button.info-card.wall-lettering::before{content:""!important;display:block!important;position:absolute;z-index:-1;inset:5% 0;pointer-events:none;border:0;width:auto;height:auto;border-radius:50%;background:radial-gradient(ellipse at 50% 50%,color-mix(in srgb,var(--letter-glow,#36c67d) 73%,transparent),color-mix(in srgb,var(--letter-glow,#36c67d) 36%,transparent) 42%,transparent 75%);filter:blur(clamp(12px,2.1vw,32px));opacity:var(--letter-glow-opacity,.65);transform:scale(1.04,.85)}
-#cardLayer:not(.editing-cards) button.info-card.wall-lettering::after{content:none!important;display:none!important}
-#cardLayer:not(.editing-cards) button.info-card.wall-lettering img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;filter:brightness(1.4) drop-shadow(0 2px 6px #000c) drop-shadow(0 0 7px #073f22b5);pointer-events:none;user-select:none}
-#cardLayer:not(.editing-cards) button.info-card.wall-lettering .simple-booking{position:relative;z-index:1;color:#f4daa2!important;font:italic 700 clamp(17px,2.4cqw,37px)/1.12 Georgia,serif;letter-spacing:.085em;text-transform:uppercase;white-space:nowrap;text-shadow:0 1px 6px #000d,0 0 13px #d4a658b3!important;pointer-events:none}
-#scenePanel{z-index:6;aspect-ratio:auto!important;border-radius:23px;border:1px solid var(--glass-border,#c9ae78);background:linear-gradient(135deg,color-mix(in srgb,var(--glass-tint,#1b2420) 43%,transparent),color-mix(in srgb,var(--glass-tint,#1b2420) 68%,transparent));backdrop-filter:blur(16px) saturate(1.07);-webkit-backdrop-filter:blur(16px) saturate(1.07);box-shadow:0 12px 29px #0008;overflow:auto;overscroll-behavior:contain;padding:clamp(16px,1.8vw,26px) clamp(13px,1.5vw,22px);touch-action:pan-y;user-select:text;-webkit-user-select:text;scrollbar-width:thin}
-#scenePanel[data-action]{aspect-ratio:auto!important}
-#scenePanel .shop-card{color:#f9f4e9!important;text-transform:none;background:none!important;border:none!important;padding:0!important;overflow:visible}
-#scenePanel .signature,#scenePanel .shop-card h2{display:none!important}
-#scenePanel .panel-close{position:sticky;display:grid;place-items:center;float:right;top:0;z-index:10;margin:-8px -8px 2px 6px;width:27px;height:27px;border-radius:50%;padding:0!important;border:1px solid #dec89f78;background:#111d19cc;color:#fff9e9;font:22px/1 Arial,sans-serif}
-#scenePanel .shop-card dl{margin:0;clear:both}
-#scenePanel .shop-card dl>div{min-height:0;padding:.24em 0;gap:9px;border-bottom:1px solid #e4d8bc2e}
-#scenePanel .shop-card dt{color:#fbf6e9;font-weight:780;text-transform:uppercase;letter-spacing:.04em}
-#scenePanel .shop-card dd{color:#fff8ed;font-weight:870;white-space:nowrap}
-#scenePanel[data-action=hours] .shop-card dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:12px;row-gap:5px}
-#scenePanel[data-action=hours] .shop-card dl>div{display:flex;flex-direction:column;align-items:flex-start;padding:.28em .2em}
-#scenePanel[data-action=hours] .shop-card dt{color:#6fe7a5;font-weight:850}
-#scenePanel[data-action=hours] .shop-card dd{color:#fffaf1;font-weight:850}
-#scenePanel[data-action=hours] .shop-card small{color:#f2d995}
-#scenePanel[data-action=prices] .shop-card dt{color:#fcf7ec;font-weight:820!important;text-transform:uppercase}
-#scenePanel[data-action=prices] .shop-card dd{color:#ff2e47;text-shadow:0 0 3px #e8294b88,0 0 12px #f9233a7d!important;font-weight:950!important;font-variant-numeric:tabular-nums}
-#scenePanel[data-action=contact] .shop-card address,#scenePanel[data-action=contact] .shop-card p{color:#fff8ed;font-style:normal;text-transform:none;white-space:pre-line;overflow-wrap:anywhere;font-size:inherit;line-height:1.45}
-#scenePanel[data-action=contact] .shop-phone{color:#f4dba1;font-size:1.32em;font-weight:850}
-#scenePanel[data-action=contact] .shop-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
-#scenePanel[data-action=contact] .shop-actions a{font-size:.9em;padding:6px 10px;white-space:nowrap}
-#scenePanel .shop-card [data-pe-field]{transition:outline .1s ease}
-#scenePanel.editing-panel [data-pe-field]{cursor:text}
-#scenePanel.editing-panel [data-pe-field]:hover,#scenePanel.editing-panel [data-pe-field]:focus{outline:1px dashed #efc986;outline-offset:2px;border-radius:3px}
 #panelEditor{position:fixed;inset:auto 10px 86px auto;margin:0;z-index:20;width:min(330px,93vw);max-height:calc(100svh - 120px);padding:15px;border:1px solid #e0c4888a;border-radius:18px;background:#121c19f0;color:#fff9ea;backdrop-filter:blur(17px);-webkit-backdrop-filter:blur(17px);box-shadow:0 8px 38px #000b;overflow:auto}
 #panelEditor:not([open]){display:none}
 #panelEditor header h2{font:700 25px Georgia,serif}
@@ -199,64 +96,113 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
  #tourNav button{width:37px;height:37px}
  #tourNav .edge-pin span{font-size:9px;top:1px!important}
  #tourNav .edge-pin::before{width:12px}
- #scenePanel{padding:13px 11px;border-radius:19px;font-size:clamp(10px,2.5vw,14px)}
- #scenePanel[data-action=hours] .shop-card dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 9px}
- #scenePanel .shop-card dl>div{padding:.19em 0}
- #scenePanel .panel-close{width:24px;height:24px}
  #panelEditor{left:2vw;right:auto;bottom:65px;width:min(310px,96vw);max-height:49svh;padding:12px}
  #panelEditor header h2{font-size:20px}
  .editor-buttons{gap:4px}
  .editor-buttons .pill{padding:7px 9px;font-size:12px}
- #cardLayer:not(.editing-cards) button.info-card.wall-lettering .simple-booking{font-size:clamp(14px,4.1cqw,26px)}
 }
 
 /* Only viewpoints that have already passed get a connecting stub. */
 #tourNav .edge-pin:not(.passed-pin)::before{display:none!important}
 
 
-/* PHOTO-REALISTIC MENU CARDS — assets supplied by the owner (20 November 2026) */
-#scenePanel.artwork-panel{
-  z-index:9;
-  isolation:isolate;
-  padding:0!important;
-  margin:0;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  backdrop-filter:none!important;
-  -webkit-backdrop-filter:none!important;
-  overflow:visible!important;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  touch-action:manipulation;
+
+/* Track the wall in video coordinates. Only the face animates, so its mounting point stays fixed. */
+#cardLayer { overflow: hidden; }
+.wall-sign {
+ position: absolute;
+ z-index: 1;
+ display: block;
+ padding: 0;
+ margin: 0;
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ overflow: visible;
+ pointer-events: auto;
+ touch-action: pan-y pinch-zoom;
+ transform-origin: center;
+ -webkit-tap-highlight-color: transparent;
 }
-#scenePanel.artwork-panel[hidden]{display:none!important}
-#scenePanel.artwork-panel .illustrated-menu{
-  display:block;
-  width:100%;height:100%;
-  object-fit:contain;
-  object-position:center;
-  pointer-events:none;
-  user-select:none;
-  -webkit-user-drag:none;
-  filter:drop-shadow(0 13px 23px rgba(0,0,0,.47));
+.wall-sign::before {
+ content: "";
+ position: absolute;
+ inset: 13% 4%;
+ background: radial-gradient(ellipse, var(--sign-halo) 0%, transparent 70%);
+ opacity: calc(.27 * var(--halo-opacity));
+ filter: blur(7px);
+ pointer-events: none;
 }
-#scenePanel.artwork-panel .panel-close{
-  position:absolute!important;
-  top:4%!important;
-  right:2%!important;
-  float:none!important;
-  margin:0!important;
-  width:clamp(28px,3.4vw,38px)!important;
-  height:clamp(28px,3.4vw,38px)!important;
-  color:#fff!important;
-  background:rgba(11,15,13,.87)!important;
-  border:1px solid #e2c17f!important;
-  font:700 24px/1 Arial,sans-serif!important;
-  box-shadow:0 1px 8px rgba(0,0,0,.6);
+.wall-sign .sign-face, .wall-sign img { display: block; width: 100%; height: 100%; }
+.wall-sign .sign-face { position: relative; }
+.wall-sign img {
+ object-fit: contain;
+ pointer-events: none;
+ user-select: none;
+ animation: neon-breathe 2.6s ease-in-out infinite;
 }
-@media(max-width:700px){
- #scenePanel.artwork-panel .panel-close{right:0!important;top:5%!important}
+@keyframes neon-breathe {
+ 0%, 100% { filter: brightness(.93) drop-shadow(0 0 1px var(--tube-tint)); }
+ 55% { filter: brightness(1.16) drop-shadow(0 0 4px var(--tube-tint)); }
 }
+.wall-sign:active .sign-face { scale: .98; }
+.wall-sign:focus-visible { outline: 2px solid white; outline-offset: 4px; }
+.wall-sign[hidden], #scenePanel[hidden] { display: none; }
+#tourNav .edge-pin[data-view=contact] span { color: #a3dcff; }
+#tourNav .edge-pin { min-width: 44px; min-height: 44px; }
+#tourNav .edge-pin[data-view=contact]::after { background: #76caff; }
+#tourNav .edge-pin[data-view=hours]::after { background: #85eea0; }
+#tourNav .edge-pin[data-view=prices]::after { background: #ff9197; }
+
+/* The transparent card wrapper lets visitors reach the wall at either side of the artwork. */
+#scenePanel {
+ position: absolute;
+ z-index: 6;
+ display: grid;
+ place-items: center;
+ container-type: size;
+ translate: -50% -50%;
+ margin: 0;
+ padding: 0;
+ border: 0;
+ background: transparent;
+ overflow: visible;
+ pointer-events: none;
+ -webkit-tap-highlight-color: transparent;
+}
+#scenePanel .illustrated-menu {
+ display: block;
+ width: min(100cqw, calc(100cqh * 1122 / 1402));
+ height: auto;
+ max-height: 100%;
+ object-fit: contain;
+ pointer-events: auto;
+ touch-action: pan-y pinch-zoom;
+ user-select: none;
+ -webkit-touch-callout: none;
+ -webkit-user-drag: none;
+ filter: drop-shadow(0 6px 9px #0006);
+}
+#scenePanel[inert] .illustrated-menu { pointer-events: none; }
+#scenePanel.moving .illustrated-menu { cursor: grabbing; }
+#scenePanel:focus-visible { outline: none; }
+#scenePanel:focus-visible .illustrated-menu { outline: 2px solid white; outline-offset: 1px; }
+#panelEditor #peShowCard { width: auto; margin: 0 .5em 0 0; vertical-align: middle; }
+@media (prefers-reduced-motion: reduce) {
+ .wall-sign img { animation: none; }
+ #tourNav button { transition: none; }
+}
+
+.scene { mask-image: none; }
+
+
+/* Make the actual door glass around the welcome beacon tappable. */
+#tourNav .door-dot {
+ width: 27%;
+ height: 53%;
+ border-radius: 2%;
+ touch-action: pan-y pinch-zoom;
+}
+.mobile-tour #tourNav .door-dot { width: 40%; height: 35%; }
+#tourNav .door-dot span { top: calc(50% + 13px); }
+#scroller { overflow-anchor: none; }
