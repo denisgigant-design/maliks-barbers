@@ -5,11 +5,14 @@
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  const mobile=mobileTour, device=mobile?'mobile':'desktop';
  const key='maliks-card-drafts-v1', layoutKey='maliks-expanded-positions-final-'+device;
- const prefKey='maliks-panel-layout-v3-'+device;
+ const prefKey='maliks-panel-layout-v4-'+device; // New artwork panels use portrait-friendly dimensions.
+ const legacyPrefKey='maliks-panel-layout-v3-'+device;
  const titles={hours:'OPEN HOURS',contact:'BOOKINGS',prices:'PRICING & SERVICES'};
  const stops={hours:85,contact:131,prices:206};
  const wallFrames={hours:[50,111],contact:[109,165],prices:[167,LAST]};
- const images={hours:'open-hours.png',prices:'pricing-services.png'};
+ const images={hours:'open-hours.png',prices:'pricing-services.png'}; // Wall headings stay unchanged.
+ const cardArt={hours:'opening-hours-card.png',prices:'pricing-card.png'};
+ const portraitDefaults=mobile?{width:94,height:82,x:50,y:50}:{width:44,height:88,x:50,y:50};
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const defaults={
   desktop:{
@@ -25,13 +28,16 @@
  };
  let previousPositions={};try{previousPositions=JSON.parse(localStorage.getItem(layoutKey))||{}}catch{}
  let locallySaved={};try{locallySaved=JSON.parse(localStorage.getItem(prefKey))||{}}catch{}
+ let legacySaved={};try{legacySaved=JSON.parse(localStorage.getItem(legacyPrefKey))||{}}catch{}
  const published=window.MALIKS_PANEL_PRESETS?.[device]||{};
  function merged(action){
-  const standard=defaults[device][action],pub=published[action]||{},local=locallySaved[action]||{};
+  const standard=defaults[device][action],pub=published[action]||{},local=locallySaved[action]||(action==='contact'?legacySaved[action]:{});
+  const usePortrait=action==='hours'||action==='prices';
   return {
    ...standard,...pub,...local,
-   x:local.x??previousPositions[action]?.x??pub.x??standard.x,
-   y:local.y??previousPositions[action]?.y??pub.y??standard.y,
+   ...(usePortrait?Object.fromEntries(Object.entries(portraitDefaults).map(([k,v])=>[k,locallySaved[action]?.[k]??v])):{}),
+   x:usePortrait?(locallySaved[action]?.x??portraitDefaults.x):(local.x??previousPositions[action]?.x??pub.x??standard.x),
+   y:usePortrait?(locallySaved[action]?.y??portraitDefaults.y):(local.y??previousPositions[action]?.y??pub.y??standard.y),
    lettering:{...standard.lettering,...(pub.lettering||{}),...(local.lettering||{})},
    fields:{...(pub.fields||{}),...(local.fields||{})}
   };
@@ -93,9 +99,9 @@
   const sw=Math.max(scene.clientWidth,1),sh=Math.max(scene.clientHeight,1);
   const width=clamp(pref.width,20,96)*sw/100,height=clamp(pref.height,14,87)*sh/100;
   // Prevent a panel exceeding the display even on tiny portrait screens.
-  detail.style.width=Math.min(width,sw*.94)+'px';
-  detail.style.height=Math.min(height,sh*.86)+'px';
-  detail.style.maxWidth='94%';detail.style.maxHeight='86%';
+  detail.style.width=Math.min(width,sw*.96)+'px';
+  detail.style.height=Math.min(height,sh*.92)+'px';
+  detail.style.maxWidth='96%';detail.style.maxHeight='92%';
   detail.style.setProperty('--glass-tint',pref.glass);
   detail.style.setProperty('--glass-border',pref.border);
   const halfX=detail.offsetWidth/sw*50+1,halfY=detail.offsetHeight/sh*50+1;
@@ -147,13 +153,26 @@
  function showPanel(action,animate=true){
   if(!action)return;
   clearFade();active=action;
-  const article=$(action).cloneNode(true);article.removeAttribute('id');
-  article.querySelector('h2')?.remove(); // Wall lettering is the heading, not duplicated inside the glass.
-  article.querySelector('.signature')?.remove();
-  makeFields(article,action);
+  const isArtwork=Object.hasOwn(cardArt,action);
   const close=document.createElement('button');close.className='panel-close';close.type='button';close.textContent='×';close.setAttribute('aria-label','Close '+titles[action]+' panel');
   close.onclick=e=>{e.stopPropagation();hidePanel()};
-  detail.replaceChildren(close,article);detail.hidden=false;detail.dataset.action=action;
+  if(isArtwork){
+   // The actual customer-supplied transparent cards replace the original HTML menus.
+   const image=document.createElement('img');
+   image.className='illustrated-menu';image.src=cardArt[action];
+   image.alt=action==='hours'?"Malik's Barbers opening hours, Monday to Sunday":'Malik’s Barbers service prices';
+   image.draggable=false;
+   detail.replaceChildren(image,close);
+  }else{
+   // Bookings is deliberately untouched.
+   const article=$(action).cloneNode(true);article.removeAttribute('id');
+   article.querySelector('h2')?.remove();
+   article.querySelector('.signature')?.remove();
+   makeFields(article,action);
+   detail.replaceChildren(close,article);
+  }
+  detail.hidden=false;detail.dataset.action=action;
+  detail.classList.toggle('artwork-panel',isArtwork);
   detail.setAttribute('aria-label',titles[action]+' details');
   detail.classList.toggle('editing-panel',panelEditor.open);
   markToday();applyPanelStyle();
@@ -161,7 +180,14 @@
    const from=action==='hours'?'translateY(-13%)':action==='contact'?'translateX(-12%)':'translateX(12%)';
    fade=detail.animate([{opacity:0,transform:from},{opacity:1,transform:'none'}],{duration:500,easing:'cubic-bezier(.16,1,.3,1)'});
   }
-  if(panelEditor.open){$('pePanel').value=action;populateFields();syncPanelEditor()}
+  if(panelEditor.open){
+   $('pePanel').value=action;populateFields();syncPanelEditor();
+   const locked=isArtwork;
+   for(const id of ['peElement','peText','peTextColor','peTextSize'])$(id).disabled=locked;
+   $('peStatus').textContent=locked
+    ? 'This design is a single uploaded image. You can resize and move the panel; its printed text cannot be edited separately.'
+    : 'Adjust the panel and its text, then export the preset to publish changes.';
+  }
   render();
  }
  function navigate(action){
@@ -381,7 +407,9 @@
  $('peReset').onclick=()=>{
   const action=$('pePanel').value;
   if(!confirm('Reset panel size, position, colours and wording for '+titles[action]+'?'))return;
-  const standard=defaults[device][action];settings[action]=structuredClone(standard);settings[action].fields={};
+  const standard=defaults[device][action];settings[action]=structuredClone(standard);
+  if(cardArt[action])Object.assign(settings[action],portraitDefaults);
+  settings[action].fields={};
   persist();choosePanel(action);$('peStatus').textContent='Restored '+titles[action]+' defaults on this device.';
  };
  $('peExport').onclick=()=>{

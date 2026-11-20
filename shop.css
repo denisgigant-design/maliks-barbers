@@ -212,3 +212,51 @@ button.info-card[data-action]:hover{border-color:#fff0c9}button.info-card[data-a
 
 /* Only viewpoints that have already passed get a connecting stub. */
 #tourNav .edge-pin:not(.passed-pin)::before{display:none!important}
+
+
+/* PHOTO-REALISTIC MENU CARDS — assets supplied by the owner (20 November 2026) */
+#scenePanel.artwork-panel{
+  z-index:9;
+  isolation:isolate;
+  padding:0!important;
+  margin:0;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  overflow:visible!important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  touch-action:manipulation;
+}
+#scenePanel.artwork-panel[hidden]{display:none!important}
+#scenePanel.artwork-panel .illustrated-menu{
+  display:block;
+  width:100%;height:100%;
+  object-fit:contain;
+  object-position:center;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-drag:none;
+  filter:drop-shadow(0 13px 23px rgba(0,0,0,.47));
+}
+#scenePanel.artwork-panel .panel-close{
+  position:absolute!important;
+  top:4%!important;
+  right:2%!important;
+  float:none!important;
+  margin:0!important;
+  width:clamp(28px,3.4vw,38px)!important;
+  height:clamp(28px,3.4vw,38px)!important;
+  color:#fff!important;
+  background:rgba(11,15,13,.87)!important;
+  border:1px solid #e2c17f!important;
+  font:700 24px/1 Arial,sans-serif!important;
+  box-shadow:0 1px 8px rgba(0,0,0,.6);
+}
+@media(max-width:700px){
+ #scenePanel.artwork-panel .panel-close{right:0!important;top:5%!important}
+}
