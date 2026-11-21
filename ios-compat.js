@@ -25,13 +25,18 @@
   }
 
   // Native <dialog> was only introduced in Safari 15.4. Keep editors accessible.
-  ['panel','cardsPanel','panelEditor'].forEach(function (id) {
+  ['panel','cardsPanel','panelEditor','lookStudio'].forEach(function (id) {
     var dialog = document.getElementById(id);
     if (!dialog) return;
+    if (!('open' in dialog)) Object.defineProperty(dialog,'open',{
+      get:function(){return this.hasAttribute('open');},
+      set:function(value){if(value)this.setAttribute('open','');else this.removeAttribute('open');}
+    });
     if (typeof dialog.show !== 'function') {
       dialog.show = function () { this.setAttribute('open',''); };
     }
     if (typeof dialog.showModal !== 'function') {
+      dialog.dataset.polyfilled='true';
       dialog.showModal = function () { this.setAttribute('open',''); this.setAttribute('aria-modal','true'); };
     }
     if (typeof dialog.close !== 'function') {
@@ -81,7 +86,7 @@
   // overlay can suppress a pan entirely. Only rescue a gesture after verifying
   // that scrollTop has not moved; don't interfere with sliders, dialogs or cards.
   var gesture = null;
-  var ignored = 'button, a, input, select, textarea, dialog, [contenteditable], .editing-cards .info-card';
+  var ignored = 'button, a, input, select, textarea, dialog, [contenteditable], #scenePanel, #lookStudio, .editing-cards .info-card';
   scroller.addEventListener('touchstart', function (event) {
     if (event.touches.length !== 1 || event.target.closest(ignored)) { gesture = null; return; }
     gesture = { y: event.touches[0].clientY, scroll: scroller.scrollTop, moves: 0, manual: false };

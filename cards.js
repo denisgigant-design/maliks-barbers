@@ -6,7 +6,7 @@
  const pins = [...nav.querySelectorAll('[data-view]')];
  const mobile = mobileTour, device = mobile ? 'mobile' : 'desktop';
  const iosWebkit = document.documentElement.classList.contains('ios-webkit');
- const artExt = document.documentElement.classList.contains('no-webp') ? '.png' : '.webp';
+ const glass=window.MalikGlass;
  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
  const key = 'maliks-card-drafts-v1';
  const layoutKey = platform => 'maliks-wall-mount-layout-v2-' + platform;
@@ -17,17 +17,7 @@
  const mountDefaults = {depth:0, yaw:0, pitch:0, roll:0, bend:0};
  const enterRadius = FPS / 2, leaveRadius = enterRadius + 3;
  const signDepartureDelay = 1000;
- const titles = {hours: 'Open Times', contact: 'Booking', prices: 'Pricing'};
- const assets = {
-  hours:   {sign: 'neon-open-times' + artExt, card: 'opening-hours-card' + artExt},
-  contact: {sign: 'neon-booking' + artExt, card: 'bookings-card' + artExt},
-  prices:  {sign: 'neon-pricing' + artExt, card: 'pricing-card' + artExt}
- };
- const popoverCopy = {
-  hours: 'Opening hours. Monday to Wednesday, 10 am to 7 pm. Thursday and Friday, 10 am to 8 pm. Saturday, 9 am to 7 pm. Sunday, 10 am to 6 pm.',
-  contact: 'Bookings. Unit 3A, Riverpark View, Mulhuddart Village, Dublin 15, D15 DY09. Telephone 089 955 9209.',
-  prices: 'Pricing. Dry Cut €20.50. Skin Fade €22.50. Haircut and Beard €25.50. Dry Kid’s Cut €18.50. Beard Trim €12.50. Face Mask and Wax €10.50. Hot Towel Shave €25.50. Haircut and Colour €40.50.'
- };
+ const titles = glass.names;
  const exteriorEnd = mobile ? 44 : 47;
  const actions = Object.keys(stops);
  function stored(name) {
@@ -39,25 +29,38 @@
   base.lettering = {...mountDefaults, ...base.lettering};
   return base;
  }
- function readLayout(platform) {
-  const saved = stored(layoutKey(platform));
-  const local = saved.basedOn === JSON.stringify(publishedLayouts[platform]) ? saved.panels || {} : {};
-  return Object.fromEntries(actions.map(action => {
-   const base = publishedPanel(platform, action);
-   const draft = local[action] || {};
-   return [action, {...base, ...draft, lettering:{...base.lettering, ...draft.lettering}}];
-  }));
+ function mergeLayout(base,draft,previous){
+  const merged={...base};
+  for(const [field,next] of Object.entries(draft||{})){
+   if(field==='__proto__'||field==='constructor'||field==='prototype')continue;
+   const prior=previous?.[field];
+   if(previous && JSON.stringify(next)===JSON.stringify(prior))continue;
+   merged[field]=next && typeof next==='object' && !Array.isArray(next)?
+    mergeLayout(base?.[field],next,prior):next;
+  }
+  return merged;
  }
- const settings = readLayout(device);
- function persist() {
+ function readLayout(platform) {
+  const saved=stored(layoutKey(platform));
+  let previous;
+  if(saved.basedOn && saved.basedOn!==JSON.stringify(publishedLayouts[platform])){
+   try{previous=JSON.parse(saved.basedOn);}catch{}
+  }
+  return Object.fromEntries(actions.map(action=>[action,
+    mergeLayout(publishedPanel(platform,action),saved.panels?.[action],previous?.[action])]));
+ }
+ const layouts = {desktop:readLayout('desktop'),mobile:readLayout('mobile')};
+ let editDevice = device;
+ const settings = layouts[device];
+ function persist(platform=device) {
   try {
-   const basedOn = JSON.stringify(publishedLayouts[device]);
-   localStorage.setItem(layoutKey(device), JSON.stringify({basedOn, panels: settings}));
-  } catch { $('peStatus').textContent = 'Device storage is unavailable. Export the preset to keep these settings.'; }
+   const basedOn = JSON.stringify(publishedLayouts[platform]);
+   localStorage.setItem(layoutKey(platform), JSON.stringify({basedOn, panels:layouts[platform]}));
+  } catch { $('peStatus').textContent = 'Device storage is unavailable. Export a backup to keep your settings.'; }
  }
  let cards=[],selectedId=null,cardDrag=null;
  try{const existing=JSON.parse(localStorage.getItem(key));if(Array.isArray(existing))cards=existing}catch{}
- if(!cards.length){
+ if(!cards.length && !stored(key+'-edited')){
   cards=[['hours',52,105,50],['contact',106,155,16],['prices',156,LAST,68]].map(([action,start,end,x])=>({
    id:'shop-'+action,action,start,end,x,y:action==='hours'?28:35,size:mobile?52:action==='hours'?45:30,shape:'long',text:''
   }));
@@ -81,72 +84,27 @@
  }]));
  let lastScrollTop = scroller.scrollTop, scrolling = false, settleTimer = 0;
  let paintedFrame = null, lastNativeFrame = 0, landingFrame = null;
- for (const action of actions) {
-  const sign = document.createElement('button');
-  sign.type = 'button';
-  sign.className = 'wall-sign';
-  sign.dataset.action = action;
-  sign.hidden = true;
-  sign.setAttribute('aria-label', 'View ' + titles[action]);
-  sign.setAttribute('aria-controls', 'scenePanel');
-  sign.style.setProperty('--sign-image', 'url("' + assets[action].sign + '")');
-  const view = document.createElement('span');
-  view.className = 'sign-view';
-  const face = document.createElement('span');
-  face.className = 'sign-face';
-  const image = document.createElement('img');
-  image.src = assets[action].sign;
-  image.loading = 'eager';
-  image.decoding = 'async';
-  image.fetchPriority = 'low';
-  image.alt = '';
-  image.draggable = false;
-  face.append(image);
-  view.append(face);
-  sign.append(view);
-  layer.append(sign);
-  signs.set(action, sign);
-  mounts.set(action, {face, strips:[], shapeKey:'', poseKey:''});
+ for (const button of pins) {
+  const action=button.dataset.view;
+  button.dataset.action=action;
+  signs.set(action,button);
+  mounts.set(action,{face:glass.marker(button,action),key:''});
  }
- // Fit a continuous cylindrical surface to the PNG. The middle of the sign is its pivot.
- function setCurve(mount, width, bend) {
-  const key = width + '/' + bend;
-  if (key === mount.shapeKey) return;
-  mount.shapeKey = key;
-  mount.face.classList.toggle('curved', bend !== 0);
-  if (!bend) return;
-  const count = 20;
-  while (mount.strips.length < count) {
-   const strip = document.createElement('span');
-   strip.className = 'sign-strip';
-   mount.face.append(strip);
-   mount.strips.push(strip);
-  }
-  const arc = 2 * bend * Math.PI / 180, radius = width / arc;
-  const step = arc / count, chord = 2 * radius * Math.sin(step / 2);
-  mount.strips.forEach((strip, i) => {
-   const angle = (i - count / 2) * step;
-   const x = radius * Math.sin(angle);
-   const z = 2 * radius * Math.sin(angle / 2) ** 2;
-   strip.style.width = (chord + (i < count - 1 ? 0.45 : 0)) + 'px';
-   strip.style.backgroundSize = (chord * count) + 'px 100%';
-   strip.style.backgroundPosition = (-i * chord) + 'px 0';
-   strip.style.transform = 'translate3d(' + x + 'px,0,' + z + 'px) rotateY(' + (-(angle + step / 2)) + 'rad)';
-  });
- }
- function fitMount(action, width, preset) {
-  const mount = mounts.get(action), sign = signs.get(action);
-  const key = [width,preset.depth,preset.yaw,preset.pitch,preset.roll,preset.bend,preset.glow,preset.strength].join('/');
-  if (key === mount.poseKey) return;
-  mount.poseKey = key;
-  sign.style.width = width + 'px';
-  sign.style.height = width / 3 + 'px';
-  sign.style.setProperty('--sign-perspective', width * 2.4 + 'px');
-  sign.style.setProperty('--sign-halo', preset.glow);
-  sign.style.setProperty('--halo-opacity', clamp(preset.strength / 100, 0, 1));
-  mount.face.style.transform = 'translateZ(' + width * preset.depth / 100 + 'px) rotateZ(' + preset.roll +
-   'deg) rotateY(' + preset.yaw + 'deg) rotateX(' + preset.pitch + 'deg)';
-  setCurve(mount, width, preset.bend);
+ function fitMount(action,width,preset,height,wall) {
+  const mount=mounts.get(action),sign=signs.get(action),material=glass.read(device,action);
+  const cacheKey=[width,height,wall,preset.depth,preset.yaw,preset.pitch,preset.roll,preset.bend,preset.glow,preset.strength,material.rim,material.blur,material.opacity].join('/');
+  if(mount.key===cacheKey)return;
+  mount.key=cacheKey;
+  sign.style.width=width+'px';sign.style.height=height+'px';
+  sign.style.setProperty('--sign-perspective',width*2.8+'px');
+  const color=preset.glow||'#ffffff';
+  const rgb=[1,3,5].map(i=>parseInt(color.substring(i,i+2),16)||0);
+  const light=(.2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2])/255;
+  sign.style.setProperty('--rim',Math.min(.95,.2+material.rim*.004+preset.strength*.003*(.4+light*.6)));
+  sign.style.setProperty('--glass-opacity',Math.min(.82,.30+material.opacity*.006));
+  sign.style.setProperty('--glass-blur',Math.round(material.blur*.55)+'px');
+  mount.face.style.transform=wall?'translateZ('+width*preset.depth/100+'px) rotateZ('+preset.roll+'deg) rotateY('+preset.yaw+'deg) rotateX('+preset.pitch+'deg)':'none';
+  glass.changeShape(mount.face,'marker',wall?preset.bend:0);
  }
  // Precompute the same subpixel transform for each decoded frame in either swipe direction.
  function makeWallPoses(action) {
@@ -182,19 +140,19 @@
    return false;
   }
   const preset = settings[action].lettering;
-  const width = sw * preset.width / 100;
-  const height = width / 3;
-  // Preserve the centre set in the original Panels editor (its sign boxes were wider in aspect).
-  const oldHeight = width / (action === 'contact' ? 5 : 5.3);
-  const refX = (sw - width) * preset.x / 100 + width / 2;
-  const refY = (sh - oldHeight) * preset.y / 100 + oldHeight / 2;
-  const [a, b, c, d, tx, ty] = pose;
-  const left = refX - width / 2, top = refY - height / 2;
-  fitMount(action, width, preset);
-  // One compositor transform moves the entire mounted sign with the actual video frame.
-  const e = a*left + c*top + tx*sw, f = b*left + d*top + ty*sh;
-  sign.style.transform = 'matrix(' + [a,b,c,d,e,f].join(',') + ')';
-  sign.hidden = false;
+  const authoredWidth=sw*preset.width/100,scale=glass.read(device,action).markerScale/100;
+  const width=clamp(Math.max(99,authoredWidth*.70)*scale,84,sw*.94);
+  const height=clamp(width*.29,44,69);
+  const oldHeight=authoredWidth/(action==='contact'?5:5.3);
+  const refX=(sw-authoredWidth)*preset.x/100+authoredWidth/2;
+  const refY=(sh-oldHeight)*preset.y/100+oldHeight/2;
+  const [a,b,c,d,tx,ty]=pose;
+  const left=clamp(refX-width/2,1,sw-width-1),top=clamp(refY-height/2,1,sh-height-1);
+  fitMount(action,width,preset,height,true);
+  sign.className='glass-marker wall-sign';
+  sign.style.left='0';sign.style.top='0';
+  sign.style.transform='matrix('+[a,b,c,d,a*left+c*top+tx*sw,b*left+d*top+ty*sh].join(',')+')';
+  sign.hidden=false;
   return true;
  }
  function cancelDeparture(visit) {
@@ -231,7 +189,7 @@
     if (visit.fade) { visit.fade.cancel(); visit.fade = null; }
     render();
    };
-   if (sign.hidden || reduced.matches || typeof sign.animate !== 'function') { finish(); return; }
+   if (sign.hidden || !sign.classList.contains('wall-sign') || reduced.matches || typeof sign.animate !== 'function') { finish(); return; }
    visit.fade = sign.animate([{opacity:1}, {opacity:0}], {duration:240, easing:'ease-out', fill:'forwards'});
    visit.fade.onfinish = finish;
   }, signDepartureDelay);
@@ -278,30 +236,63 @@
    }
   }
  }
- function showPins(sw, sh) {
-  const at = paintedFrame;
-  const outside = at === null || at <= exteriorEnd;
-  const editing = editor.open || panelEditor.open;
-  door.hidden = editing || !outside || !!route;
-  for (const button of pins) {
-   const action = button.dataset.view;
-   const sign = signs.get(action);
-   const hadFocus = document.activeElement === sign || document.activeElement === button;
-   const wallVisible = wallVisibleAt(action, at) && !outside && placeSign(action, at, sw, sh);
-   if (!wallVisible) sign.hidden = true;
-   const expanded = active === action && !detail.hidden && !detail.inert;
-   sign.setAttribute('aria-expanded', String(expanded));
-   button.setAttribute('aria-expanded', String(expanded));
-   button.hidden = editing || outside || wallVisible;
-   if (hadFocus && !outside && !editing && !route) {
-    const target = wallVisible ? sign : button;
-    if (document.activeElement !== target) target.focus({preventScroll:true});
+ // Prefer the authored edge and height. If a panel or another marker occupies that
+ // space, choose the nearest clear point along either edge without changing the preset.
+ function edgePosition(preferredX,otherX,y,w,sh,occupied){
+  const ys=[y,23,sh-23];
+  for(const box of occupied)ys.push(box.y-box.h/2-26,box.y+box.h/2+26);
+  let best={x:preferredX,y},bestScore=Infinity;
+  for(const x of [preferredX,otherX]){
+   for(const wanted of ys){
+    const cy=clamp(wanted,23,Math.max(23,sh-23));
+    let score=Math.abs(cy-y)+Math.abs(x-preferredX)*.38;
+    for(const b of occupied){
+     const dx=Math.max(0,Math.min(x+w/2+2,b.x+b.w/2)-Math.max(x-w/2-2,b.x-b.w/2));
+     const dy=Math.max(0,Math.min(cy+24,b.y+b.h/2)-Math.max(cy-24,b.y-b.h/2));
+     score+=dx*dy*100;
+    }
+    if(score<bestScore){best={x,y:cy};bestScore=score;}
    }
-   if (button.hidden) continue;
-   const right = action === 'prices' || (action === 'hours' && at >= 109 && at < 147);
-   button.className = 'edge-pin' + (right ? ' edge-right' : '') + (at > stops[action] ? ' passed-pin' : '');
-   button.style.left = mobile ? (right ? '88%' : '12%') : (right ? '93%' : '7%');
-   button.style.top = action === 'hours' ? '17%' : '78%';
+  }
+  return best;
+ }
+ function showPins(sw,sh,roomRect) {
+  const at=paintedFrame;
+  const outside=at===null || at<=exteriorEnd, editing=editor.open||panelEditor.open;
+  const activeElement=document.activeElement;
+  const lanes=[];
+  const gutter=Math.max(0,(scene.parentElement.clientWidth-sw)/2);
+  if(active && !detail.hidden)lanes.push({x:parseFloat(detail.style.left),y:parseFloat(detail.style.top),w:detail.offsetWidth,h:detail.offsetHeight});
+  for(const mark of pins){
+   if(!mark.hidden && mark.classList.contains('wall-sign') && at!==null && poses[mark.dataset.view].has(at)){
+    const rect=mark.getBoundingClientRect();
+    lanes.push({x:rect.left-roomRect.left+rect.width/2,y:rect.top-roomRect.top+rect.height/2,w:rect.width,h:rect.height});
+   }
+  }
+  door.hidden=editing || !outside || !!route;
+  for(const button of pins){
+   const action=button.dataset.view,expanded=active===action&&!detail.hidden&&!detail.inert;
+   button.setAttribute('aria-expanded',String(expanded));
+   const wall=wallVisibleAt(action,at) && !outside && poses[action].has(at);
+   const parent=wall?layer:nav;
+   if(button.parentNode!==parent)parent.append(button);
+   button.hidden=outside || (editing&&!wall);
+   if(button.hidden)continue;
+   if(wall)placeSign(action,at,sw,sh);
+   else{
+    const right=action==='prices'||(action==='hours'&&at>=109&&at<147);
+    const p=glass.read(device,action),preset=settings[action].lettering;
+    const w=clamp((action==='hours'?127:99)*p.markerScale/100,80,Math.max(80,(sw-8)/2));
+    fitMount(action,w,preset,44,false);
+    button.className='glass-marker edge-pin'+(right?' edge-right':'');
+    const edge=gutter>=190 && sw<530 ? -Math.min(gutter*.5,w/2+12+gutter*p.edgeInset/100) :
+      w/2+4+(sw-w-8)*p.edgeInset/100;
+    const preferred=right?sw-edge:edge;
+    const position=edgePosition(preferred,sw-preferred,sh*p.edgeY/100,w,sh,lanes);
+    lanes.push({...position,w,h:44});
+    button.style.left=position.x+'px';button.style.top=position.y+'px';button.style.transform='';
+   }
+   if(activeElement===button && !editing && document.activeElement!==button)button.focus({preventScroll:true});
   }
  }
  let draftsMounted = false;
@@ -329,28 +320,45 @@
   draftsMounted = seen.size > 0;
  }
  function render() {
-  const {width:sw, height:sh} = layer.getBoundingClientRect();
+  const roomRect=layer.getBoundingClientRect(),{width:sw,height:sh}=roomRect;
   $('cardTime').value = frame;
   $('cardClock').value = time(frame);
   renderDrafts(sw, sh);
-  showPins(sw, sh);
+  showPins(sw,sh,roomRect);
  }
  function applyPanelStyle() {
   if (!active) return;
-  const pref = settings[active];
-  const w = clamp(pref.width, 20, 96);
-  const h = clamp(pref.height, 14, 92);
-  detail.style.width = w + '%';
-  detail.style.height = h + '%';
-  detail.style.left = clamp(pref.x, w/2+1, 99-w/2) + '%';
-  detail.style.top = clamp(pref.y, h/2+1, 99-h/2) + '%';
+  glass.place(device,active,settings[active]);
  }
  function clearTimer() {
   clearTimeout(hideTimer);
   hideTimer = 0;
  }
+ let motionSerial=0;
  function stopMotion() {
-  if (motion) { motion.onfinish = null; motion.cancel(); motion = null; }
+  motionSerial++;
+  if(motion){if(motion.kill)motion.kill();else motion.cancel();motion=null;}
+ }
+ function transition(show,animate,action,done) {
+  const face=glass.faces[action],serial=++motionSerial;
+  const ms=glass.read(device,action).duration*(show?1:.7);
+  const offset=detail.dataset.side==='bottom'?[0,14]:[detail.dataset.side==='right'?16:-16,0];
+  const finish=()=>{
+   if(serial!==motionSerial)return;
+   motion=null;face.style.opacity='';face.style.transform='';
+   if(done)done();
+  };
+  if(!animate || reduced.matches || !ms){finish();return;}
+  const initial=show?0:Math.min(1,Number(getComputedStyle(face).opacity));
+  if(window.gsap){
+   const from=show?{x:offset[0],y:offset[1],opacity:0}:{opacity:initial};
+   const to=show?{x:0,y:0,opacity:1}:{x:offset[0]*.62,y:offset[1]*.62,opacity:0};
+   motion=gsap.fromTo(face,from,{...to,duration:ms/1000,ease:show?'power3.out':'power2.in',overwrite:true,onComplete:finish});
+  }else if(typeof face.animate==='function'){
+   const displaced='translate('+offset[0]+'px,'+offset[1]+'px)';
+   const frames=show?[{opacity:0,transform:displaced},{opacity:1,transform:'none'}]:[{opacity:initial,transform:getComputedStyle(face).transform},{opacity:0,transform:displaced}];
+   motion=face.animate(frames,{duration:ms,easing:show?'cubic-bezier(.18,.76,.23,1)':'ease-in'});motion.onfinish=finish;
+  }else finish();
  }
  function cancelDrag() {
   if (dragPanel) clearTimeout(dragPanel.timer);
@@ -363,22 +371,14 @@
   if (!active) return;
   const action = active;
   const hadFocus = detail.contains(document.activeElement);
-  const opacity = Number(getComputedStyle(detail).opacity);
-  const transform = getComputedStyle(detail).transform;
   stopMotion();
-  active = null;
-  detail.inert = true;
-  const done = () => { detail.hidden = true; stopMotion(); };
-  if (animate && !reduced.matches && typeof detail.animate === 'function') {
-   motion = detail.animate([{opacity, transform}, {opacity: 0, transform:'translateY(8px) scale(.965)'}],
-    {duration:180, easing:'ease-in', fill:'forwards'});
-   motion.onfinish = done;
-  } else done();
+  active=null;detail.inert=true;detail.setAttribute('inert','');
+  transition(false,animate,action,()=>{detail.hidden=true;});
   render();
   if (restoreFocus && hadFocus) {
    const sign = signs.get(action);
-   const pin = pins.find(p => p.dataset.view === action);
-   const target = !sign.hidden ? sign : !pin.hidden ? pin : !door.hidden ? door : scroller;
+   
+   const target = !sign.hidden ? sign : !door.hidden ? door : scroller;
    target.focus({preventScroll:true});
   }
  }
@@ -389,26 +389,20 @@
   active = action;
   ignoreClick = false;
   originScroll = scroller.scrollTop;
-  // Three permanent, independently loaded images prevent the previous (blue)
-  // Booking artwork from appearing when Pricing is selected.
-  detail.dataset.action = action;
-  detail.setAttribute('aria-label', popoverCopy[action] + ' Activate to dismiss.');
-  detail.hidden = false;
-  detail.inert = false;
+  detail.dataset.action=action;
+  glass.reveal(action);
+  detail.hidden=false;detail.inert=false;detail.removeAttribute('inert');
   applyPanelStyle();
-  if (animate && !reduced.matches && typeof detail.animate === 'function') {
-   const from = action === 'contact' ? 'translateX(-10px)' : action === 'prices' ? 'translateX(10px)' : 'translateY(10px)';
-   motion = detail.animate([{opacity:0, transform:from+' scale(.955)'}, {opacity:1, transform:'none'}],
-    {duration:310, easing:'cubic-bezier(.18,.76,.23,1)'});
-  }
+  transition(true,animate,action);
   render();
   if (focus) detail.focus({preventScroll:true});
  }
  // A single guided navigation runs at a controlled update rate. Previously every
  // requestAnimationFrame tried another video seek (often 60 seeks/second), while
  // scroll events immediately sought AGAIN. Mobile WebKit cannot decode that load.
+ let clearArrival=null,lastIntent=-Infinity;
  function cancelTravel() {
-  trip++;
+  trip++;if(clearArrival){clearArrival();clearArrival=null;}
   cancelAnimationFrame(travelRaf);
   travelRaf = 0;
   if (movie.dataset.guided) {
@@ -420,26 +414,42 @@
   document.documentElement.classList.remove('tour-navigating');
  }
  function navigate(action, keyboard = false) {
-  if (!stops.hasOwnProperty(action)) return;
-  cancelTravel();
+  if (action!=='outside' && !Object.prototype.hasOwnProperty.call(stops,action)) return;
+  const now=performance.now(), revealAfter=now-lastIntent<240?now+140:now;
+  lastIntent=now;cancelTravel();
   landingFrame = null;
-  const serial = trip, start = frame, end = stops[action];
+  const serial = trip, start = frame, end = action==='outside'?0:stops[action];
   route = action;
   document.documentElement.classList.add('tour-navigating');
   if (panelEditor.open) panelEditor.close();
   if (active && (start !== end || active !== action)) hidePanel(false);
+  else if(!active && !detail.hidden){stopMotion();detail.hidden=true;}
   render();
   const finish = () => {
    if (serial !== trip) return;
-   // No lingering queued seeking/playback is allowed to drag the image back
-   // after a new section's card opens.
-   cancelTravel();
+   cancelAnimationFrame(travelRaf);
+   movie.pause();delete movie.dataset.guided;
+   if(movie.playbackRate!==1)movie.playbackRate=1;
+   landingFrame=end;
    jump(end);
-   present(end);
-   // Ignore stale decoded frames from the previous view until the final seek lands.
-   landingFrame = end;
-   revealWall(action, scroller.scrollTop);
-   showPanel(action, true, keyboard);
+   let timeout=0,hold=0;
+   const arrive=()=>{
+    if(serial!==trip)return;
+    cancelTravel();landingFrame=null;present(end);
+    if(action==='outside'){resetVisits();hidePanel(false);render();if(keyboard)door.focus({preventScroll:true});}
+    else{revealWall(action,scroller.scrollTop);showPanel(action,true,keyboard);}
+   };
+   const ready=()=>{
+    if(serial!==trip || hold)return;
+    clearTimeout(timeout);movie.removeEventListener('seeked',decoded);
+    const delay=revealAfter-performance.now();
+    if(delay>0)hold=setTimeout(arrive,delay);else arrive();
+   };
+   const decoded=()=>{if(!movie.seeking && Math.abs(movie.currentTime*FPS-end)<=1.05)ready();};
+   clearArrival=()=>{clearTimeout(timeout);clearTimeout(hold);movie.removeEventListener('seeked',decoded);};
+   if(movie.error || movie.readyState<1 || (!movie.seeking && Math.abs(movie.currentTime*FPS-end)<=1.05)){ready();return;}
+   movie.addEventListener('seeked',decoded);
+   timeout=setTimeout(()=>{if(movie.seeking || movie.readyState<2 || Math.abs(movie.currentTime*FPS-end)>1.05)showStill();ready();},850);
   };
   if (start === end || reduced.matches) { finish(); return; }
   movie.dataset.guided = 'true'; // Suspend normal per-frame seeking while travelling.
@@ -475,7 +485,7 @@
     if (movie.readyState >= 1 && !movie.error && !movie.seeking &&
         now - travelSeekAt >= seekGap) {
      travelSeekAt = now;
-     try { movie.currentTime = clamp(value,0,LAST)/FPS; } catch (_) {}
+     seekFilm(value,true);
     }
     travelRaf = requestAnimationFrame(step);
    };
@@ -487,7 +497,7 @@
   // If blocked/buffered, fall back to the bounded scrub above, not an abrupt jump.
   try { movie.pause(); movie.playbackRate = iosWebkit ? 1.75 : 2; } catch (_) { scrub(); return; }
   if (Math.abs(movie.currentTime - start/FPS) > .10) {
-   try { movie.currentTime = start/FPS; } catch (_) { scrub(); return; }
+   if(!seekFilm(start,true)){scrub();return;}
   }
   let lastMedia = movie.currentTime, lastAdvance = performance.now(), hasPlayed = false;
   const follow = now => {
@@ -509,40 +519,43 @@
   } catch (_) { scrub(); }
  }
  door.addEventListener('click', e => navigate('hours', e.detail === 0));
- for (const pin of pins) pin.addEventListener('click', e => navigate(pin.dataset.view, e.detail === 0));
- layer.addEventListener('click', e => {
-  const sign = e.target.closest('.wall-sign');
-  if (sign && !editor.open && !panelEditor.open) navigate(sign.dataset.action, e.detail === 0);
+ for(const button of pins)button.addEventListener('click',e=>{
+  if(editor.open||panelEditor.open)return;
+  const action=button.dataset.view;
+  if(active===action && !route){hidePanel(true,true);return;}
+  navigate(action,e.detail===0);
  });
+ $('returnEntrance').addEventListener('click',e=>navigate('outside',e.detail===0));
  function interruptTravel() {
   landingFrame = null;
-  if (route) { cancelTravel(); render(); }
+  if (route) { cancelTravel(); seek(); render(); }
  }
  scroller.addEventListener('wheel', interruptTravel, {passive:true});
  scroller.addEventListener('touchmove', interruptTravel, {passive:true});
- scroller.addEventListener('scroll', scrollWalls, {passive:true});
  scroller.addEventListener('scrollend', settleWalls);
  scroller.addEventListener('pointerdown', e => { if (e.target === scroller) interruptTravel(); });
  scroller.addEventListener('keydown', e => {
   if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(e.key)) interruptTravel();
  });
  scroller.addEventListener('scroll', () => {
+  scrollWalls();
   if (!active || route || panelEditor.open || dragPanel?.moving) return;
   // Start once on departure. More scroll events must not extend the one-second delay.
   if (Math.abs(scroller.scrollTop - originScroll) < 1) { clearTimer(); return; }
   if (!hideTimer) hideTimer = setTimeout(() => hidePanel(), 1000);
  }, {passive:true});
  document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || editor.open || panelEditor.open || $('panel').open) return;
+  if (e.key !== 'Escape' || e.defaultPrevented || $('lookStudio').open || editor.open || panelEditor.open || $('panel').open) return;
   interruptTravel();
   hidePanel(true, true);
  });
- detail.addEventListener('click', () => {
+ detail.addEventListener('click', e => {
+  if(e.target.closest('a,button:not(.glass-dismiss),input,select') || String(window.getSelection()).trim())return;
   if (ignoreClick) { ignoreClick = false; return; }
   if (active && !panelEditor.open) hidePanel(true, true);
  });
  detail.addEventListener('pointerdown', e => {
-  if (!e.isPrimary || e.button !== 0 || !active || panelEditor.open) return;
+  if (!e.isPrimary || e.button !== 0 || !active || panelEditor.open || e.target.closest('a,button,.glass-content')) return;
   ignoreClick = false;
   const g = {id:e.pointerId, x:e.clientX, y:e.clientY, moving:false};
   dragPanel = g;
@@ -553,6 +566,11 @@
    ignoreClick = true;
    detail.classList.add('moving');
    const r = detail.getBoundingClientRect();
+   if(glass.read(device,active).dock==='smart'){
+    const area=scene.getBoundingClientRect();
+    Object.assign(settings[active],{width:r.width/area.width*100,height:r.height/area.height*100,x:(r.left-area.left+r.width/2)/area.width*100,y:(r.top-area.top+r.height/2)/area.height*100});
+    glass.save(device,active,{dock:'authored',scale:100});applyPanelStyle();
+   }
    g.dx = g.x - r.left - r.width/2;
    g.dy = g.y - r.top - r.height/2;
    detail.setPointerCapture(g.id);
@@ -577,7 +595,7 @@
  }
  window.addEventListener('pointerup', release);
  window.addEventListener('pointercancel', release);
- detail.addEventListener('contextmenu', e => e.preventDefault());
+ detail.addEventListener('contextmenu', e => {if(dragPanel?.moving)e.preventDefault();});
  function markToday(){
   const day = new Intl.DateTimeFormat('en-IE',{weekday:'long',timeZone:'Europe/Dublin'}).format(new Date());
   document.querySelectorAll('[data-day]').forEach(row => {
@@ -587,9 +605,10 @@
    if (small) small.hidden = !today;
   });
  }
- markToday();
- setInterval(markToday, 30000);
- document.addEventListener('visibilitychange', markToday);
+ let dayTimer;
+ function updateDay(){clearTimeout(dayTimer);markToday();if(!document.hidden)dayTimer=setTimeout(updateDay,3600000-(Date.now()%3600000)+50);}
+ updateDay();
+ document.addEventListener('visibilitychange', updateDay);
  // The Panels editor always previews the authored reference frame.
  const controls = [
   ['peWidth','width'], ['peHeight','height'], ['peX','x'], ['peY','y'],
@@ -599,7 +618,7 @@
   ['peGlowStrength','strength',true], ['peGlow','glow',true]
  ];
  function syncPanelEditor() {
-  const pref = settings[$('pePanel').value];
+  const pref = layouts[editDevice][$('pePanel').value];
   for (const [id, prop, isSign, unit = '%'] of controls) {
    const v = (isSign ? pref.lettering : pref)[prop];
    $(id).value = v;
@@ -614,6 +633,8 @@
   else hidePanel(false);
   syncPanelEditor();
   render();
+  const isLeft=active ? Number.parseFloat(detail.style.left)<scene.clientWidth/2 : settings[action].lettering.x<50;
+  window.MalikBarber.suggestDock(isLeft?1:0);
  }
  $('panelsBtn').onclick = () => {
   if (panelEditor.open) { panelEditor.close(); return; }
@@ -630,9 +651,11 @@
  $('peShowCard').onchange = () => choosePanel($('pePanel').value);
  for (const [id, prop, isSign] of controls) {
   $(id).oninput = e => {
-   const pref = settings[$('pePanel').value];
+   const pref = layouts[editDevice][$('pePanel').value];
    (isSign ? pref.lettering : pref)[prop] = id === 'peGlow' ? e.target.value : Number(e.target.value);
-   persist();
+   if(!isSign && glass.read(editDevice,$('pePanel').value).dock==='smart')glass.save(editDevice,$('pePanel').value,{dock:'authored'});
+   persist(editDevice);
+   window.MalikPresetUI?.sync();
    applyPanelStyle();
    syncPanelEditor();
    render();
@@ -641,14 +664,14 @@
  $('peReset').onclick = () => {
   const action = $('pePanel').value;
   if (!confirm('Restore the published '+titles[action]+' layout on this device?')) return;
-  settings[action] = publishedPanel(device, action);
-  persist();
+  layouts[editDevice][action]=publishedPanel(editDevice,action);
+  glass.reset(editDevice,action);persist(editDevice);window.MalikPresetUI?.sync();
   choosePanel(action);
   $('peStatus').textContent = 'Published layout restored on this device.';
  };
  $('peExport').onclick = () => {
   const result = {desktop:readLayout('desktop'), mobile:readLayout('mobile')};
-  result[device] = settings;
+  Object.assign(result,layouts);
   const contents = '/* Published panel layouts for Malik’s Barbers */\nwindow.MALIKS_PANEL_PRESETS = '+JSON.stringify(result,null,2)+';\n';
   const href = URL.createObjectURL(new Blob([contents],{type:'text/javascript'}));
   const a = document.createElement('a');
@@ -757,12 +780,20 @@
  scroller.addEventListener('tourframe', () => {
   // Old iOS does not decode seek frames before a user gesture; keep the tour
   // controls responsive even when the native video cannot report its frame.
-  if (iosWebkit && (movie.readyState < 2 || movie.error ||
-      (typeof movie.requestVideoFrameCallback === 'function' &&
-       performance.now() - lastNativeFrame > 300))) present(frame);
+  if (movie.readyState<2 || movie.error || (iosWebkit && typeof movie.requestVideoFrameCallback==='function' && performance.now()-lastNativeFrame>300)) present(frame);
   scheduleRender();
  });
- if (typeof ResizeObserver === 'function') new ResizeObserver(render).observe(layer);
- else window.addEventListener('resize',render, {passive:true});
+ function resizeScene(){applyPanelStyle();scheduleRender();}
+ if(typeof ResizeObserver==='function')new ResizeObserver(resizeScene).observe(scene.parentElement);
+ window.addEventListener('resize',resizeScene,{passive:true});
+ window.MalikLayout={
+  device,layouts,publishedPanel,layoutKey,persist,get editDevice(){return editDevice;},
+  edit(next){editDevice=next;window.MalikBarber.editDevice(next);syncPanelEditor();},
+  refresh(){for(const d of ['desktop','mobile'])Object.assign(layouts[d],readLayout(d));syncPanelEditor();applyPanelStyle();render();},
+  preview(){applyPanelStyle();render();},
+  snapshotCards(){return structuredClone(cards);},
+  restoreCards(list){cards=structuredClone(list);selectedId=cards.find(c=>c.id===selectedId)?.id||cards[0]?.id;fields();}
+ };
+ reduced.addEventListener?.('change',()=>{if(route)navigate(route);else if(active)showPanel(active,false);else if(!detail.hidden){stopMotion();detail.hidden=true;}});
  render();
 })();

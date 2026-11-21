@@ -1,224 +1,241 @@
-/* Malik's Barbers — Glass Atelier integration.
-   Drops into the Nov 20 website without altering its tour/lighting timeline.
-   The barber video remains a separate #pricingBarber layer in .scene. */
+/* Glass surfaces and service content. cards.js owns navigation and panel lifetimes. */
 (() => {
   'use strict';
-  if (window.MALIKS_GLASS_READY) return;
-  window.MALIKS_GLASS_READY = true;
-
-  const $ = id => document.getElementById(id);
-  const root = document.documentElement;
+  const byId = id => document.getElementById(id);
   const scene = document.querySelector('.scene');
-  const detail = $('scenePanel');
-  const editor = $('panelEditor');
-  const panelSelect = $('pePanel');
-  const scroller = $('scroller');
-  if (!scene || !detail || !editor || !panelSelect) return;
-  const device = root.classList.contains('mobile-tour') ||
-    matchMedia('(max-width:700px)').matches ? 'mobile' : 'desktop';
-  const devices = ['desktop', 'mobile'];
+  const detail = byId('scenePanel');
   const actions = ['hours', 'contact', 'prices'];
-  const reduced = matchMedia('(prefers-reduced-motion:reduce)');
-  const defaults = window.MALIKS_GLASS_PRESETS || {};
-  const panelNames = { hours:'OPEN TIMES', contact:'BOOKINGS', prices:'PRICING' };
-  const prefKey = (dev, action) => `maliks-glass-settings-v1-${dev}-${action}`;
-  const clamp = (num, a, b) => Math.min(b, Math.max(a, Number(num) || 0));
-  function base(dev, action) {
-    return { blur:dev==='mobile'?15:22, opacity:dev==='mobile'?48:34,
-      dock:'smart', ...(defaults[dev]?.[action] || {}) };
+  const names = {hours:'Opening hours', contact:'Booking', prices:'Pricing'};
+  const shapes = {hours:'facet', contact:'shield', prices:'asymmetric'};
+  const profiles = {
+    facet:[[0,13],[10,0],[87,0],[100,9],[100,86],[90,100],[12,100],[0,90]],
+    shield:[[0,5],[16,0],[84,0],[100,5],[96,79],[82,91],[50,100],[18,91],[4,79]],
+    asymmetric:[[0,13],[12,0],[72,0],[76,4],[100,4],[100,76],[90,96],[66,96],[60,100],[0,100]],
+    marker:[[0,30],[9,0],[85,0],[100,48],[90,100],[12,100],[0,76]]
+  };
+  const icons = {
+    hours:'M10 2.7a7.3 7.3 0 1 0 .1 0 M10 5.7v4.7l3 1.6',
+    contact:'M6 2.8 8.2 6.6 6.5 8.4c1.1 2.4 2.7 4.1 5.1 5.1l1.8-1.7 3.8 2.2c-.5 2.3-1.7 3.5-3.8 3.2C7.7 16.3 3.7 12.3 2.8 6.6c-.3-2.1.9-3.3 3.2-3.8Z',
+    prices:'M3 4h9l6 6-8 8-7-7Z M7 7h.1'
+  };
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const element = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const svg = tag => document.createElementNS('http://www.w3.org/2000/svg', tag);
+  const readJSON = key => {try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
+  const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
+  const key = (device,action) => 'maliks-glass-settings-v1-'+device+'-'+action;
+  const limits = {blur:[0,36],opacity:[12,85],rim:[0,100],duration:[0,1000],scale:[65,135],
+    markerScale:[65,150],edgeInset:[0,45],edgeY:[5,95]};
+  const cache = new Map();
+  function defaults(device,action) {
+    return {blur:device==='mobile'?14:20,opacity:43,dock:'smart',shape:shapes[action],
+      scale:100,markerScale:100,rim:52,duration:350,edgeInset:3,edgeY:action==='hours'?17:77,
+      ...window.MALIKS_GLASS_PRESETS?.[device]?.[action]};
   }
-  function read(dev, action) {
-    let draft;
-    try {draft=JSON.parse(localStorage.getItem(prefKey(dev,action)));} catch (_){}
-    return {...base(dev,action),...(draft && typeof draft==='object' ? draft : {})};
+  function sanitize(device,action,draft) {
+    const baseline=defaults(device,action), p={...baseline,...draft};
+    for(const [prop,[lo,hi]] of Object.entries(limits)){
+      const number=Number(p[prop]);
+      p[prop]=Number.isFinite(number)?clamp(number,lo,hi):baseline[prop];
+    }
+    if(!['smart','authored'].includes(p.dock))p.dock='authored';
+    if(!Object.values(shapes).includes(p.shape))p.shape=shapes[action];
+    return p;
   }
-  function save(dev,action,settings){
-    try {localStorage.setItem(prefKey(dev,action),JSON.stringify(settings));}
-    catch (_) { if($('mgStatus')) $('mgStatus').textContent='Storage unavailable; export your presets.'; }
+  function read(device,action) {
+    const name=key(device,action);
+    if(cache.has(name))return cache.get(name);
+    const draft=readJSON(name)||{};
+    const layout=readJSON('maliks-wall-mount-layout-v2-'+device);
+    const manual=layout?.panels?.[action];
+    let published=window.MALIKS_PANEL_PRESETS?.[device]?.[action];
+    try{published=JSON.parse(layout.basedOn)[action]||published;}catch{}
+    if(!draft.dock && manual && published && ['width','height','x','y'].some(k=>manual[k]!=null && manual[k]!==published[k]))draft.dock='authored';
+    const p=sanitize(device,action,draft);
+    cache.set(name,p);return p;
   }
-  function el(tag, className, text) {
-    const e=document.createElement(tag);
-    if(className)e.className=className;
-    if(text!==undefined)e.textContent=text;
-    return e;
+  function save(device,action,delta) {
+    const p=sanitize(device,action,{...read(device,action),...delta});
+    const name=key(device,action);
+    cache.set(name,p);
+    try{localStorage.setItem(name,JSON.stringify(p));}catch{byId('peStatus').textContent='Device storage is unavailable. Export a backup to keep these settings.';}
+    return p;
   }
-  function addRows(parent, sectionId) {
-    const dl=el('dl','mg-rows');
-    document.querySelectorAll(`#${sectionId} dl > div`).forEach(row=>{
-      const newRow=el('div');
-      const dt=el('dt','',row.querySelector('dt')?.childNodes[0]?.textContent?.trim() ||
-        row.querySelector('dt')?.textContent?.replace('Today','').trim() || '');
-      const dd=el('dd','',row.querySelector('dd')?.textContent?.trim() || '');
-      if(row.querySelector('small')?.hidden===false) newRow.classList.add('mg-row-today');
-      newRow.append(dt,dd);dl.append(newRow);
+  function surface(node,shape) {
+    const skin=element('span','glass-skin');
+    skin.setAttribute('aria-hidden','true');
+    const rim=svg('svg');rim.setAttribute('class','glass-rim');rim.setAttribute('viewBox','0 0 100 100');
+    rim.setAttribute('preserveAspectRatio','none');rim.setAttribute('aria-hidden','true');
+    rim.append(svg('polygon'),svg('path'));node.prepend(skin,rim);
+    changeShape(node,shape);
+  }
+  function changeShape(node,shape,bend=0) {
+    const tag=shape+'/'+bend;
+    if(node.dataset.profile===tag)return;
+    const points=profiles[shape].map(([x,y])=>[x,y]);
+    if(shape==='marker'){
+      // Change the central ridge and opposite lip while the marker keeps its wall pose.
+      const bow=bend/45*9;
+      points.splice(2,0,[48,2+bow*.6]);points.splice(-2,0,[50,98+bow*.6]);
+    }
+    node.dataset.profile=tag;node.dataset.shape=shape;
+    node.style.setProperty('--cut','polygon('+points.map(p=>p[0]+'% '+p[1]+'%').join(',')+')');
+    const rim=node.querySelector('.glass-rim');
+    rim.firstElementChild.setAttribute('points',points.map(p=>p.join(',')).join(' '));
+    const [x,y]=points[0],[x1,y1]=points[1],last=points[points.length-1];
+    rim.lastElementChild.setAttribute('d','M '+last.join(' ')+' L '+(x+2)+' '+y+' L '+(x1+1)+' '+(y1+1)+' L '+(x1+14)+' '+(y1+1));
+  }
+  function marker(button,action) {
+    button.textContent='';
+    button.style.setProperty('--wall-light-x',{hours:'29%',contact:'72%',prices:'40%'}[action]);
+    const pose=element('span','marker-pose'),face=element('span','marker-surface');
+    surface(face,'marker');pose.append(face);
+    const label=element('span','marker-label'),icon=svg('svg'),path=svg('path');
+    icon.setAttribute('viewBox','0 0 20 20');icon.setAttribute('aria-hidden','true');
+    path.setAttribute('d',icons[action]);path.setAttribute('stroke','currentColor');path.setAttribute('fill','none');
+    path.setAttribute('stroke-width','1.35');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');
+    icon.append(path);label.append(icon,document.createTextNode(names[action]));
+    const status=element('i','marker-status');status.setAttribute('aria-hidden','true');
+    button.append(pose,label,status);
+    return face;
+  }
+  const faces={},rows=[...byId('prices').querySelectorAll('dl>div')].map(row=>({
+    name:row.querySelector('dt').textContent,price:row.querySelector('dd').textContent
+  }));
+  let selected=null, studioPromise=null;
+  function openStudio(opener) {
+    const slug=selected!==null && rows[selected]?.name==='Skin Fade'?'skin-fade':undefined;
+    opener.setAttribute('aria-busy','true');
+    if(!studioPromise)studioPromise=import('./look-studio.js?v=emerald2-flat');
+    studioPromise.then(studio=>{if(opener.isConnected && !opener.closest('[hidden],[inert]'))return studio.open(opener,slug);}).catch(()=>{
+      studioPromise=null;const status=opener.parentElement.querySelector('[role=status]');
+      if(status)status.textContent='Look Studio could not load. Select it again to retry.';
+    }).finally(()=>opener.removeAttribute('aria-busy'));
+  }
+  function serviceCatalogue() {
+    const wrap=element('div','catalogue'),list=element('div','service-list');
+    list.setAttribute('role','group');list.setAttribute('aria-label','Select a service');
+    rows.forEach((item,index)=>{
+      const btn=element('button','service-row');btn.type='button';btn.dataset.service=index;btn.setAttribute('aria-pressed','false');
+      btn.append(element('span','service-name',item.name),element('span','service-price',item.price));list.append(btn);
     });
-    parent.append(dl);
+    const launch=element('button','studio-entry');launch.type='button';launch.setAttribute('aria-haspopup','dialog');
+    const arrow=svg('svg'),line=svg('path');arrow.setAttribute('viewBox','0 0 16 16');arrow.setAttribute('width','14');arrow.setAttribute('height','14');arrow.setAttribute('aria-hidden','true');
+    line.setAttribute('d','M3 13 13 3M4 3h9v9');line.setAttribute('fill','none');line.setAttribute('stroke','currentColor');line.setAttribute('stroke-width','1.3');arrow.append(line);
+    launch.append(element('span','launch-name','Look Studio'),arrow);
+    const status=element('span','catalogue-status');status.setAttribute('role','status');
+    wrap.append(list,launch,status);return wrap;
   }
-  function createGlass(action) {
-    const panel=el('article','mg-glass');
-    panel.dataset.kind=action;
-    const inner=el('div','mg-glass-inner');
-    inner.append(el('span','mg-ident',action==='contact'?'VISIT US IN DUBLIN 15':
-      action==='prices'?'THE GENTLEMAN’S MENU':'YOUR NEXT VISIT'));
-    inner.append(el('h2','',panelNames[action]));
-    inner.append(el('div','mg-rule'));
-    if(action==='hours') addRows(inner,'hours');
-    if(action==='prices') addRows(inner,'prices');
-    if(action==='contact'){
-      const address = $('contact')?.querySelector('address');
-      const phone = $('contact')?.querySelector('a[href^="tel:"]');
-      const map = $('contact')?.querySelector('a[href*="google.com/maps"]');
-      inner.append(el('div','mg-description','Appointments and enquiries'));
-      if(address) inner.append(el('address','mg-address',address.textContent.trim()));
-      if(phone){
-        const a=el('a','mg-phone',phone.textContent.trim());
-        a.href=phone.href;a.setAttribute('aria-label','Call '+a.textContent);
-        a.addEventListener('click',e=>e.stopPropagation());
-        inner.append(a);
+  function selectService(index) {
+    if(!rows[index])return;
+    selected=index;
+    document.querySelectorAll('[data-service]').forEach(btn=>btn.setAttribute('aria-pressed',String(+btn.dataset.service===index)));
+    document.querySelectorAll('.studio-entry').forEach(node=>node.setAttribute('aria-label',rows[index].name==='Skin Fade'?'Open Skin Fade in Look Studio':'Open Look Studio'));
+  }
+  function build() {
+    for(const action of actions){
+      const article=element('article','glass-sheet');article.dataset.kind=action;article.hidden=true;surface(article,shapes[action]);
+      const head=element('header'),title=element('h2','',names[action]);title.id='glass-title-'+action;
+      head.append(title,element('div','rim-sample'));
+      const body=element('div','glass-content');body.tabIndex=0;body.setAttribute('role','region');body.setAttribute('aria-label',names[action]+' details');
+      if(action==='hours')body.append(byId('hours').querySelector('dl').cloneNode(true));
+      if(action==='contact'){
+        const source=byId('contact');
+        for(const selector of ['address','.shop-phone','p','.shop-actions'])body.append(source.querySelector(selector).cloneNode(true));
       }
-      if(map){
-        const a=el('a','mg-map','VIEW DIRECTIONS ↗');a.href=map.href;
-        a.rel='noopener noreferrer';a.target='_blank';
-        a.addEventListener('click',e=>e.stopPropagation());inner.append(a);
-      }
+      if(action==='prices')body.append(serviceCatalogue());
+      const foot=element('div','glass-footer'),close=element('button','glass-dismiss');
+      close.type='button';close.setAttribute('aria-label','Back to shop');
+      close.append(element('span','return-long','Back to shop'),element('span','return-short','Back'));
+      if(action==='prices'){foot.append(body.querySelector('.studio-entry'),body.querySelector('.catalogue-status'));}
+      foot.append(close);
+      article.append(head,body,foot);detail.append(article);faces[action]=article;
+      surface(byId(action),shapes[action]);
     }
-    const foot=el('div','mg-footer');
-    foot.append(el('span','', 'TAP TO CLOSE'),el('span','mg-diamond'));
-    inner.append(foot);panel.append(inner);
-    // Clicking on card content dismisses, except for live phone/navigation links.
-    return panel;
-  }
-  // Remove the old illustrated cards entirely. Their artwork (and any barber
-  // figure baked into it) cannot show or flash during transitions anymore.
-  const faces={};
-  for (const old of [...detail.children]) old.remove();
-  for (const action of actions){
-    const face=createGlass(action);face.hidden=true;faces[action]=face;detail.append(face);
-  }
-  // The original panel used to be a giant button. It now hosts accessible links.
-  // Keep its existing ID, click-dismiss and press-and-hold movement listeners.
-  detail.setAttribute('role','dialog');
-  detail.setAttribute('aria-modal','false');
-  detail.setAttribute('tabindex','-1');
-  detail.removeAttribute('aria-haspopup');
-  detail.addEventListener('keydown',e=>{
-    if(e.key==='Escape' && !editor.open){
-      e.stopPropagation();detail.click();
-    }
-  });
-  let lastAction=null;
-  let panelAnim=null;
-  const glassState = ()=>!detail.hidden && !detail.inert && actions.includes(detail.dataset.action);
-  function apply() {
-    const active=glassState()?detail.dataset.action:null;
-    for(const action of actions)faces[action].hidden=action!==active;
-    if(!active){root.classList.remove('mg-smart');lastAction=null;return;}
-    const pref=read(device,active);
-    const glass=faces[active];
-    glass.style.setProperty('--mg-glass-blur',clamp(pref.blur,0,36)+'px');
-    glass.style.setProperty('--mg-glass-opacity',(clamp(pref.opacity,12,80)/100).toFixed(2));
-    // Smart and authored placements are separate modes. Authored stays adjustable
-    // through the old x/y/width/height editor and its published presets.
-    root.classList.toggle('mg-smart',!editor.open && pref.dock==='smart');
-    if(active!==lastAction){
-      lastAction=active;
-      if(!reduced.matches){
-        panelAnim?.kill?.();
-        if(window.gsap){
-          const mobile=device==='mobile';
-          panelAnim=window.gsap.fromTo(glass,
-            {opacity:0, y:mobile?23:0, x:mobile?0:(active==='hours'?28:-28), scale:.978},
-            {opacity:1,y:0,x:0,scale:1,duration:mobile?.43:.48,
-              ease:'power3.out',overwrite:'auto',clearProps:'opacity,transform'});
-        } else if(typeof glass.animate==='function'){
-          glass.animate([{opacity:0,transform:`translate3d(${device==='mobile'?0:active==='hours'?18:-18}px,${device==='mobile'?22:0}px,0)`},
-            {opacity:1,transform:'translate3d(0,0,0)'}],
-            {duration:380,easing:'cubic-bezier(.2,.75,.2,1)'});
-        }
-      }
+    byId('prices').querySelector('dl').replaceWith(serviceCatalogue());
+    byId('hours').querySelector('h2').textContent='Opening hours';
+    byId('contact').querySelector('h2').textContent='Booking & contact';
+    byId('prices').querySelector('h2').textContent='Services & pricing';
+    for(const root of [detail,byId('prices')]){
+      root.addEventListener('click',e=>{
+        const service=e.target.closest('[data-service]'),opener=e.target.closest('.studio-entry');
+        if(service)selectService(+service.dataset.service);
+        else if(opener)openStudio(opener);
+      });
     }
   }
-  const detailObserver=new MutationObserver(apply);
-  detailObserver.observe(detail,{attributes:true,attributeFilter:['hidden','inert','data-action']});
-  new MutationObserver(apply).observe(editor,{attributes:true,attributeFilter:['open']});
-  panelSelect.addEventListener('change',()=>queueMicrotask(apply));
-  window.addEventListener('resize',apply,{passive:true});
-  // We leave existing studio positioning alone when it is open.
-  // Create new publishing controls for three unique glass designs.
-  const group=el('div','mg-editor');group.innerHTML=`
-   <fieldset><legend>Glass studio · separate desktop / mobile</legend>
-    <p class="mg-sub">Three different shapes: octagonal HOURS, shield BOOKINGS and angled PRICING. No figure inside any card. Smart dock protects the central camera view. Authored uses your original position sliders.</p>
-    <div class="mg-editor-row">
-      <label>Preview preset<select id="mgDevice"><option value="desktop">Desktop</option><option value="mobile">Mobile</option></select></label>
-      <label>Position mode<select id="mgDock"><option value="smart">Smart side / bottom dock</option><option value="authored">Your saved positions</option></select></label>
-    </div>
-    <label>Background blur <output id="mgBlurOut"></output><input id="mgBlur" type="range" min="0" max="36" step="1"></label>
-    <label>Glass opacity <output id="mgOpacityOut"></output><input id="mgOpacity" type="range" min="12" max="80" step="1"></label>
-    <button type="button" class="mg-export" id="mgExport">EXPORT GLASS PRESETS FOR EVERYONE</button>
-    <p id="mgStatus" class="mg-sub" aria-live="polite">Published settings remain your starting point. Local changes can be exported.</p>
-   </fieldset>`;
-  const actionsArea=editor.querySelector('.pe-actions');
-  if(actionsArea) actionsArea.before(group); else editor.append(group);
-  const ui={dev:$('mgDevice'),dock:$('mgDock'),blur:$('mgBlur'),opacity:$('mgOpacity')};
-  let previewDev=device;ui.dev.value=device;
-  function showUI(){
-    const p=read(previewDev,panelSelect.value);
-    ui.dev.value=previewDev;ui.dock.value=p.dock;
-    ui.blur.value=clamp(p.blur,0,36);ui.opacity.value=clamp(p.opacity,12,80);
-    $('mgBlurOut').textContent=ui.blur.value+'px';$('mgOpacityOut').textContent=ui.opacity.value+'%';
-    $('mgStatus').textContent=previewDev!==device?
-      'Switch to '+previewDev+' to see this layout at the correct scale. Export saves both.' :
-      'Adjust these values, then export to publish them for visitors.';
+  function reveal(action) {
+    for(const kind of actions) faces[kind].hidden=kind!==action;
+    detail.setAttribute('aria-labelledby','glass-title-'+action);
+    faces[action].querySelector('.glass-content').scrollTop=0;
   }
-  ui.dev.addEventListener('change',()=>{previewDev=ui.dev.value;showUI();});
-  panelSelect.addEventListener('change',showUI);
-  editor.addEventListener('close',apply);
-  for(const [prop,node,event] of [['dock',ui.dock,'change'],['blur',ui.blur,'input'],['opacity',ui.opacity,'input']]){
-    node.addEventListener(event,()=>{
-      const action=panelSelect.value;
-      const pref=read(previewDev,action);
-      pref[prop]=prop==='dock'?node.value:Number(node.value);
-      save(previewDev,action,pref);
-      if(previewDev===device)apply();
-      $('mgBlurOut').textContent=ui.blur.value+'px';
-      $('mgOpacityOut').textContent=ui.opacity.value+'%';
-    });
+  function applyMaterial(node,p) {
+    node.style.setProperty('--glass-blur',p.blur+'px');node.style.setProperty('--glass-opacity',String(p.opacity/100));
+    node.style.setProperty('--rim',String(p.rim/100));changeShape(node,p.shape);
   }
-  $('mgExport').addEventListener('click',()=>{
-    const config=Object.fromEntries(devices.map(d=>[d,Object.fromEntries(actions.map(a=>[a,read(d,a)]))]));
-    const content='/* Published Malik glass settings for all devices */\n'+
-      'window.MALIKS_GLASS_PRESETS = '+JSON.stringify(config,null,2)+';\n';
-    const url=URL.createObjectURL(new Blob([content],{type:'text/javascript;charset=utf-8'}));
-    const anchor=el('a');anchor.href=url;anchor.download='glass-presets.js';
-    document.body.append(anchor);anchor.click();anchor.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),12000);
-    $('mgStatus').textContent='glass-presets.js exported. Upload it beside index.html to publish desktop and mobile styles.';
-  });
-  showUI();apply();
-
-  // Real GSAP is used when available; otherwise standard browser animations are
-  // the fallback. Lenis is desktop-only to preserve iPhone native touch scrubbing.
-  if(scroller && device==='desktop' && !reduced.matches){
-    let lenis=null, raf=0;
-    try{
-      if(window.Lenis){
-        lenis=new window.Lenis({wrapper:scroller,content:scroller.firstElementChild,
-          duration:.8,smoothWheel:true,syncTouch:false,wheelMultiplier:1});
-        const tick=t=>{lenis.raf(t);raf=requestAnimationFrame(tick);};
-        raf=requestAnimationFrame(tick);
-        new MutationObserver(()=>{
-          if(root.classList.contains('tour-navigating') || editor.open ||
-             $('cardsPanel')?.open || $('panel')?.open)lenis.stop();
-          else lenis.start();
-        }).observe(root,{attributes:true,attributeFilter:['class']});
+  const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
+  function place(device,action,layout) {
+    const p=read(device,action), face=faces[action];applyMaterial(face,p);
+    const box=scene.getBoundingClientRect(),stage=scene.parentElement.getBoundingClientRect();
+    const sw=box.width, sh=box.height, gap=box.left-stage.left, full=stage.width, factor=p.scale/100;
+    if(!sw||!sh)return;
+    const compact=sw<590 || (device==='mobile' && matchMedia('(orientation:portrait)').matches);
+    const gutter=gap>=210 && compact;
+    const drawer=p.dock==='smart' && compact;
+    let w,h,x,y,side;
+    if(p.dock==='authored'){
+      w=clamp(sw*layout.width/100*factor,Math.min(90,sw),sw*.98);
+      h=clamp(sh*layout.height/100*factor,Math.min(92,sh*.5),sh*.96);
+      x=clamp(sw*layout.x/100,w/2,sw-w/2);y=clamp(sh*layout.y/100,h/2,sh-h/2);
+      side=x<sw/2?'left':'right';
+    }else if(compact&&!gutter){
+      w=Math.min(full-24,(action==='prices'?344:322)*factor);
+      if(action==='prices'){
+        const barber=window.MalikBarber.value(device);
+        const bw=sh*barber.size/100*(1+barber.depth/150)*415/1207;
+        const free=gap+sw*barber.x/100-bw/2-15;
+        if(barber.enabled && free>=158)w=Math.min(w,Math.max(158,free-5));
       }
-    }catch(_){ if(raf)cancelAnimationFrame(raf); lenis?.destroy?.(); }
+      h=Math.min(sh*.39,Math.max(132,sh*.34*factor),260*factor);
+      const left=-gap+12,right=full-gap-12-w;
+      x=(action==='prices'?left:action==='contact'?right:(left+right)/2)+w/2;
+      y=sh-h/2-7;side='bottom';
+    }else{
+      w=gutter?Math.min(gap-20,315*factor):clamp(sw*.28*factor,Math.min(220,stage.width*.33),Math.min(375*factor,full*.42));
+      h=Math.min(sh*.82,(action==='prices'?457:action==='hours'?391:300)*factor);
+      const edges=[-gap+Math.min(28,full*.023),sw+gap-Math.min(28,full*.023)-w];
+      const pref=layout.lettering, oldW=sw*pref.width/100;
+      const markerX=(sw-oldW)*pref.x/100+oldW/2,markerY=sh*pref.y/100;
+      const obstacles=[{x:markerX-oldW*.32,y:markerY-18,w:oldW*.64,h:48,weight:11}];
+      const subject={hours:[.35,.29,.31,.52],contact:[.07,.29,.41,.5],prices:[.29,.24,.26,.43]}[action];
+      obstacles.push({x:sw*subject[0],y:sh*subject[1],w:sw*subject[2],h:sh*subject[3],weight:1.8});
+      if(action==='prices'){
+        const v=window.MalikBarber.value(device),bh=sh*v.size/100*(1+v.depth/150),bw=bh*415/1207;
+        if(v.enabled)obstacles.push({x:sw*v.x/100-bw/2,y:sh*(1-v.bottom/100)-bh,w:bw,h:bh,weight:18});
+      }
+      const top=(sh-h)*.48;
+      const score=(x,i)=>obstacles.reduce((sum,o)=>sum+overlap({x,y:top,w,h},o)*o.weight,0)+(i===(action==='contact'?1:0)?0:1);
+      const i=score(edges[0],0)<=score(edges[1],1)?0:1;
+      x=edges[i]+w/2;y=top+h/2;side=i?'right':'left';
+    }
+    Object.assign(detail.style,{width:w+'px',height:h+'px',left:x+'px',top:y+'px'});
+    detail.dataset.drawer=String(drawer);detail.dataset.narrow=String(w<245);detail.dataset.side=side;
+    if(!detail.hidden && !reduced.matches && matchMedia('(hover:hover) and (pointer:fine)').matches &&
+       !navigator.connection?.saveData && (navigator.deviceMemory||8)>=4){
+      if(!bevelPromise)bevelPromise=import('./glass-mark.mjs?v=emerald2-flat').catch(()=>null);
+      bevelPromise.then(api=>{if(api && !detail.hidden && !detail.inert && detail.dataset.action===action)api.attach(face,p.rim);});
+    }
   }
-  // Footer: an unobtrusive mark; Three.js/GLSL optionally enhances it.
-  const footer=document.querySelector('.stage footer');
-  if(footer){
-    const mark=el('span','mg-mark');mark.id='mgMark';mark.setAttribute('aria-hidden','true');
-    mark.innerHTML='<span class="mg-mark-fallback">M</span><canvas width="100" height="100"></canvas>';
-    footer.insertBefore(mark,footer.querySelector('.editor-buttons'));
-  }
+  let bevelPromise=null;
+  build();
+  window.MalikGlass={actions,names,limits,faces,read,save,defaults,key,sanitize,marker,changeShape,place,reveal,
+    clearCache(){cache.clear();}, reset(device,action){
+      const p=sanitize(device,action,defaults(device,action));cache.set(key(device,action),p);
+      try{localStorage.removeItem(key(device,action));}catch{}return p;
+    }};
 })();

@@ -1,78 +1,47 @@
-MALIK'S BARBERS — GLASS ATELIER UPGRADE (21 NOV 2026)
-====================================================
+MALIK’S BARBERS
+Cinematic Glass Experience V2
 
-This is a ROOT-LEVEL CODE UPDATE for your existing GitHub Pages repository.
-It does NOT replace the tour footage, lighting system or existing photos.
+Install the website
+1. Extract this ZIP. All 38 files are at the top level, including index.html.
+2. In your existing website repository, select all the extracted files and upload them together beside your current index.html. Keep the filenames exactly as supplied.
+3. Replace matching website files. Keep unrelated repository files, including any custom domain or hosting configuration. If you have newer published presets, follow the note below.
+4. Commit your upload when ready. Refresh the website after your usual publishing process completes.
 
-1. Download and UNZIP this package.
-2. In your current Malik's Barbers GitHub repository, go to "Add file" > "Upload files".
-3. Upload the unzipped files directly to the repository ROOT. Choose to replace
-   existing files with the same names. Commit the changes.
-4. Keep all other files already in the repository (especially lighting.js,
-   desktop/mobile footage, JPG scenes and neon sign images). DO NOT delete them.
-5. Refresh with a hard reload if cached images/styles persist.
+Files collected beside index.html
+gsap.min.js and GSAP-NOTICE.txt supply the local animation dependency and its notice.
+looks.json holds the four Look Studio entries.
+desktop-hours.jpg, desktop-contact.jpg and desktop-prices.jpg are the desktop fallback frames.
+mobile-hours.jpg, mobile-contact.jpg and mobile-prices.jpg are the mobile fallback frames.
 
-IMPORTANT: Your original lighting.js and original walking-tour video files are
-not in this package because the latest supplied website-update ZIPs omitted
-those existing production files. They must remain in your existing repository.
-The three pricing-barber media files ARE included to preserve their latest
-Safari/Chrome transparency fallback.
+Media and saved layouts
+The archive includes the complete original desktop and mobile films, storefronts, room photographs, earlier tour.mp4, both transparent-barber video formats, the barber poster, wall-tracks.js, glass-presets.js and barber-preset.js. Identical copies already in the repository can stay in place. Historical neon and poster files can also stay in place. The new interface has no references to them.
 
-WHAT CHANGED
-------------
-- Three genuinely different, asymmetric transparent frosted glass panels.
-  Opening hours: chamfered octagon, green-tinted lettering.
-  Bookings: shield form, blue/steel highlights.
-  Pricing: asymmetric metal plaque, restrained red accents.
-- Removed ALL raster card images from the live panel DOM. No illustrated barber
-  appears ON any panel. The separate pricing barber still renders IN THE ROOM.
-- Smart docking on desktop moves panels towards the side edges; mobile uses
-  a compact lower panel (pricing biased left to leave the barber more visible).
-- Panels > Glass studio controls blur, opacity and smart-versus-saved positioning,
-  separately per device/action. All options save locally until exported.
-- The existing Panels editor, movable controls, wall signs, timeline, captions,
-  native scroll and preconfigured desktop/mobile barber placement stay intact.
-- A new "Export glass presets" button downloads glass-presets.js. Upload that
-  file to make your chosen glass settings the site defaults for everyone.
-- Desktop-only optional Lenis smoothing; optional GSAP entrance animations;
-  optional Three.js + WebGL + GLSL metallic mark in the footer. These libraries
-  load from pinned free public CDNs when online. The site works without them.
-- Reduced-motion support and low-power/mobile fallbacks built in.
+If you published newer positioning or glass settings after the supplied version, retain your newer panel-presets.js, barber-preset.js or glass-presets.js as appropriate. The V2 barber runtime loads separately before the panel data, including when an older exported panel file contains the V4 barber extension. Existing local drafts are read from their original storage keys on the same website origin. A localhost preview has its own browser storage.
 
-HOW TO CUSTOMIZE
-----------------
-1. Visit the shop and select "Panels".
-2. Choose the panel name (Open hours, Bookings or Pricing).
-3. In "Glass studio" choose Desktop or Mobile and choose Smart dock or Your
-   saved positions. Move the panel in the existing Pop-up card editor when
-   using Your saved positions.
-4. Set blur and opacity. Choose another panel to edit the next one.
-5. Press "EXPORT GLASS PRESETS FOR EVERYONE" and upload the downloaded
-   glass-presets.js file to GitHub root.
-6. If you also move the neon wall signs or the barber himself, export their
-   original panel-presets.js and barber-preset.js separately as before.
+Preview on your computer
+From the extracted folder, run python3 -m http.server 8000 and open http://localhost:8000. The local server supplies the modules, JSON and video files. The website has no build step or third-party runtime requests.
 
-FILES THAT REPLACE EXISTING CODE
---------------------------------
-index.html, shop.css, cards.js, ios-compat.js, wall-tracks.js,
-panel-presets.js, barber-preset.js
+Using the editors
+Select Panels, choose Desktop or Mobile, then select a section. The tour previews its current film. You can edit and export either device profile. Show panel in preview reveals the information surface. Turning it off exposes the tracked marker. Move the editor with the header arrows or by dragging its title. On a fresh device, its starting side follows the selection.
 
-NEW FILES
----------
-glass-upgrade.css, glass-upgrade.js, glass-mark.mjs, glass-presets.js
+Smart edge docking uses available screen space. Choosing Saved position restores the stored panel placement. Editing a manual placement slider or deliberately holding and dragging the panel heading selects Saved position. The two modes share the same stored manual coordinates. Marker and panel scale are separate. Reflection source retains the older colour control and translates its brightness into a neutral edge reflection.
 
-EXISTING VIDEO FALLBACK FILES INCLUDED
---------------------------------------
-pricing-barber-transparent.webm, pricing-barber-alpha-packed.mp4,
-pricing-barber-poster.png
+Changes save as you edit. Save settings records the complete configuration on this device. Reset this panel restores the published geometry and glass for the selected section and layout. The barber placement editor has its own device reset. Export backup and Import backup round-trip both layouts, glass settings, editor dock positions, barber placements, card cues and lighting keyframes in maliks-experience.json. Importing a backup applies it to this device.
 
-CHECKS
-------
-- HTML and JavaScript syntax checked.
-- Chromium integration checks passed against the available saved source code
-  plus a test-only substitute for the missing lighting.js. Both desktop and
-  mobile passed the panel switching, layout, export-controls and tap-dismiss
-  checks. Actual video playback against your live GitHub files was not tested.
+To make layout changes the defaults for visitors, export the relevant published files from Panels. Export panel positions produces panel-presets.js. Export glass styles produces glass-presets.js. The Pricing barber controls export barber-preset.js. Replace the corresponding root files in your repository. The original Cards editor and triple-press Lighting editor retain their own controls and exports.
 
-This package does not create another Higgsfield website and does not require
-Higgsfield website hosting or Higgsfield credits.
+Adding approved haircut photographs
+The supplied project contains no haircut meshes, mannequin model or approved haircut photographs. Look Studio opens to four selectable styles. Until approved photographs are present, it displays the original room photograph captioned “Inside Malik’s Barbers” and a photo-availability note.
+
+Place each approved photograph beside index.html. Add its filename, view label and accessible description to the appropriate style’s views array in looks.json. For example, after supplying two real Skin Fade photographs, enter
+
+[
+  {"file":"skin-fade-front.webp","label":"Front","alt":"Skin fade viewed from the front"},
+  {"file":"skin-fade-profile.webp","label":"Profile","alt":"Skin fade viewed from the side"}
+]
+
+The same setup works for low-taper, textured-crop and classic-cut. Use distinct filenames for each style and view. Local JPG, JPEG, PNG, WebP and AVIF photos are supported when the visitor’s browser can decode them. The entry order sets the angle sequence. One photograph displays directly. Two or more enable horizontal mouse or touch dragging and angle buttons. The Previous and Next buttons switch haircuts. Empty arrays make zero haircut-image requests. A failed photo falls back to another available angle, then to the labelled shop image.
+
+If you already filled in the earlier catalogue, use your own looks.json beside index.html and move the photographs there too. When moving a photograph, join its original style name and filename with a hyphen. An older entry for the front view in the skin-fade directory resolves to skin-fade-front.webp when that was the original extension.
+
+The existing menu names Skin Fade explicitly, so selecting that service opens its matching studio entry. The other haircut styles are browsing references and carry no new price.

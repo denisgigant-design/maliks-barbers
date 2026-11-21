@@ -1,0 +1,5 @@
+GSAP 3.13.0
+Copyright 2025, GreenSock. All rights reserved.
+The local gsap.min.js file is the unmodified distribution build from the gsap 3.13.0 npm package. Its original copyright and license notice is present at the top of the file.
+GreenSock Standard License
+https://gsap.com/standard-license

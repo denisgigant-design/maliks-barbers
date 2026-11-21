@@ -76,7 +76,7 @@ function paint(){
  const filters=[],layers=[];
  if(m.on){
   const gain=m.intensity/100*2**(m.exposure/100);
-  movie.style.filter='brightness('+gain+') saturate('+m.saturation+'%)';
+  movie.style.filter=gain===1 && m.saturation===100?'none':'brightness('+gain+') saturate('+m.saturation+'%)';
   if(m.color!=='#ffffff')filters.push('linear-gradient('+m.color+'66,'+m.color+'66)');
   if(m.warmth){const tint=m.warmth>0?'255,155,58':'66,151,255';const c='rgba('+tint+','+Math.abs(m.warmth)/250+')';filters.push('linear-gradient('+c+','+c+')');}
  }else movie.style.filter='';
@@ -125,11 +125,25 @@ function usesMobileFootage(nav){
         (nav.platform==='MacIntel' && nav.maxTouchPoints>1);
 }
 const mobileTour=usesMobileFootage(navigator);
-const range=()=>Math.max(1,document.querySelector('.travel').offsetHeight);
-function seek(){if(!movie.dataset.guided&&!movie.seeking&&movie.readyState>=2&&Math.abs(movie.currentTime-frame/FPS)>.018)movie.currentTime=frame/FPS;}
+const travel=document.querySelector('.travel');
+const range=()=>Math.max(1,travel.offsetHeight);
+// Every seek of the shop film passes through this controller. Guided playback owns it
+// only for the duration of a trip; native scrolling owns it at all other times.
+function seekFilm(target,guided=false){
+ if((movie.dataset.guided&&!guided)||movie.error||movie.seeking||movie.readyState<2)return false;
+ const seconds=Math.max(0,Math.min(LAST,target))/FPS;
+ try{if(Math.abs(movie.currentTime-seconds)>.018)movie.currentTime=seconds;return true;}catch{return false;}
+}
+function seek(){seekFilm(frame);}
+let lastPainted=-1;
 function setFrame(f){
- frame=Math.max(0,Math.min(LAST,f));seek();if(panel.open)refresh();paint();scroller.dispatchEvent(new Event("tourframe"));
- $('hint').textContent=frame===LAST?'Prices, hours & contact ↓':'Scroll to explore ↓';
+ frame=Math.max(0,Math.min(LAST,f));seek();
+ if(movie.error || !still.hidden)showStill();
+ if(lastPainted===frame && !movie.error)return;
+ lastPainted=frame;if(panel.open)refresh();paint();
+ scroller.style.setProperty('--progress',(frame/LAST).toFixed(4));
+ scroller.dispatchEvent(new Event('tourframe'));
+ $('hint').textContent=movie.error?'Tour stills · scroll to explore':frame===LAST?'Shop information ↓':'Scroll to explore ↓';
 }
 function jump(f){scroller.scrollTop=f/LAST*range();setFrame(f)}
 let queued=false;
@@ -141,13 +155,29 @@ scroller.addEventListener('scroll',syncScroll,{passive:true});
 function selectVideo(){
 
  document.documentElement.classList.toggle('mobile-tour',mobileTour);
+ movie.width=mobileTour?720:1280;movie.height=mobileTour?1280:720;
  movie.poster=mobileTour?'mobile-front.jpg':'storefront.jpg';
  movie.src=mobileTour?'mobile-tour.mp4':'walkthrough.mp4';
  canvas.width=mobileTour?720:1280;canvas.height=mobileTour?1280:720;
  setFrame(frame);
 }
 movie.addEventListener('loadeddata',seek);movie.addEventListener('seeked',seek);
-movie.onerror=()=>$('hint').textContent='The walkthrough could not load. Refresh to retry.';
+// The exact frames from each original film also serve as a network/codec fallback.
+const still=document.createElement('img');still.id='roomFallback';still.alt='';still.hidden=true;
+still.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+movie.after(still);
+function showStill(){
+ const section=frame<48?'outside':frame<108?'hours':frame<165?'contact':'prices';
+ if(still.dataset.view!==section){
+  still.dataset.view=section;
+  still.src=section==='outside'?movie.poster:(mobileTour?'mobile':'desktop')+'-'+section+'.jpg';
+ }
+ still.hidden=false;
+}
+movie.addEventListener('error',()=>{showStill();setFrame(frame);});
+function restoreFilm(){if(!movie.error && !movie.seeking && movie.readyState>=2 && Math.abs(movie.currentTime*FPS-frame)<=1.1)still.hidden=true;}
+movie.addEventListener('loadeddata',restoreFilm);movie.addEventListener('seeked',restoreFilm);
+window.MalikLighting={snapshot:()=>structuredClone(model),restore(value){model=structuredClone(value);selected=0;build();}};
 $('timeline').oninput=e=>jump(Number(e.target.value));
 $('track').onchange=e=>{selected=Number(e.target.value);build()};
 $('power').onchange=e=>record({on:e.target.checked});

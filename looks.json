@@ -1,0 +1,22 @@
+{
+  "skin-fade": {
+    "name": "Skin Fade",
+    "detail": "The sides blend down to bare skin. The height of the fade and the length on top can be discussed with your barber.",
+    "views": []
+  },
+  "low-taper": {
+    "name": "Low Taper",
+    "detail": "A gradual taper around the temples and nape keeps more length through the sides.",
+    "views": []
+  },
+  "textured-crop": {
+    "name": "Textured Crop",
+    "detail": "A short top with a textured finish and a forward fringe. The fringe length changes how the cut frames the face.",
+    "views": []
+  },
+  "classic-cut": {
+    "name": "Classic Cut",
+    "detail": "A balanced shape with a longer top and neatly tapered sides. The top can be worn with a natural part.",
+    "views": []
+  }
+}
