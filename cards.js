@@ -347,18 +347,12 @@
  function transition(show,animate,action,done) {
   const face=glass.faces[action],serial=++motionSerial;
   const ms=glass.read(device,action).duration*(show?1:.7);
-  const offset=detail.dataset.side==='bottom'?[0,14]:[detail.dataset.side==='right'?16:-16,0];
   const finish=()=>{if(serial!==motionSerial)return;motion=null;if(done)done();};
-  if(!animate || reduced.matches || !ms || typeof face.animate!=='function'){finish();return;}
-  // The backdrop-filter cannot sample the room if its ancestor is animated from
-  // opacity zero. Keep the glass at its final material from the first visible frame.
-  // Retain the subtle slide on content only; the glass itself remains stationary.
-  const nodes=show?[...face.children].filter(n=>!n.matches('.glass-skin,.glass-rim')):[face];
-  const displacement='translate('+offset[0]+'px,'+offset[1]+'px)';
-  const frames=show?[{transform:displacement},{transform:'none'}]:[{opacity:1},{opacity:0}];
-  const animations=nodes.map(n=>n.animate(frames,{duration:ms,easing:show?'cubic-bezier(.18,.76,.23,1)':'ease-in'}));
+  if(!animate || reduced.matches || !ms){finish();return;}
+  // Keep the glass surface fully resolved through navigation.
+  const animations=glass.contentMotion(face,ms,show);
   motion={cancel(){animations.forEach(a=>a.cancel());}};
-  if(animations.length)Promise.all(animations.map(a=>a.finished)).then(finish,()=>{});else finish();
+  if(animations.length)Promise.all(animations.map(a=>a.finished)).then(()=>{if(serial!==motionSerial)return;finish();animations.forEach(a=>a.cancel());},()=>{});else finish();
  }
  function cancelDrag() {
   if (dragPanel) clearTimeout(dragPanel.timer);

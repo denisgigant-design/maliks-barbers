@@ -118,3 +118,20 @@ html.tour-navigating .nav-clipper,html.tour-navigating .nav-clipper::before{anim
 #scenePanel .glass-sheet{transition:none;}
 #scenePanel .glass-sheet>.glass-rim{color:rgb(var(--glass-border-rgb,233,243,233));}
 #scenePanel [data-shape=rounded]>.glass-skin{border-color:rgba(var(--glass-border-rgb,220,240,229),var(--rim,.36));}
+
+/* V5 — feedback only; no card box, blur, tint or placement changes. */
+:where(button,a[href],[role=button]){-webkit-tap-highlight-color:rgba(225,245,234,.12)}
+:where(.glass-sheet,.shop-card,#lookStudio) :is(button,a[href]):focus-visible{outline:1px solid #e5f4e9;outline-offset:-2px}
+:where(.glass-sheet,.shop-card,#lookStudio,dialog,.tour-tools) :is(button,a[href]):is(.malik-pressed,:active){box-shadow:inset 0 0 0 1px #d7eee88c,inset 0 0 16px #e7f4ec19}
+:where(.glass-sheet,.shop-card,#lookStudio,dialog,.tour-tools) :is(button,a[href]).malik-activated{box-shadow:inset 0 0 0 1px #d7eee870,inset 0 0 12px #e7f4ec12}
+.service-row[aria-pressed=true]{box-shadow:inset 2px 0 0 #d8eee6a1}
+.service-row[aria-pressed=true] .service-price{color:#e1ffe9}
+:is(.glass-marker,.door-dot):is(.malik-pressed,.malik-activated,:active) .marker-label{color:#fff;text-shadow:0 0 8px #f5fff4,0 1px 3px #000}
+:is(.glass-marker,.door-dot):is(.malik-pressed,.malik-activated,:active) .clipper-grip{box-shadow:inset 0 0 5px #fff,0 0 7px rgba(var(--clipper-color),.65)}
+@media(hover:hover) and (pointer:fine){
+ :where(.glass-sheet,.shop-card,#lookStudio) :is(button,a[href]):hover{color:#f1fff5;text-decoration-color:#e1f7e7}
+ .service-row:hover{box-shadow:inset 2px 0 0 #d7eee86b}
+}
+@media(prefers-reduced-motion:no-preference){
+ :where(.glass-sheet,.shop-card,#lookStudio) :is(button,a[href]){transition:box-shadow .14s ease-out,color .14s ease-out}
+}

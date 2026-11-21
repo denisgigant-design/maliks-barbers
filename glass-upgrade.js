@@ -234,11 +234,49 @@
       bevelPromise.then(api=>{if(api && !detail.hidden && !detail.inert && detail.dataset.action===action)api.attach(face,p.rim);});
     }
   }
+  // V5: animate information only. Never animate glass or panel geometry.
+  function contentMotion(root, duration, entering=true) {
+    if(reduced.matches || !duration || !root.animate)return [];
+    const nodes=[...root.querySelectorAll('header h2, :scope > h2, :scope > .signature, dl > div, .service-row, address, p, .shop-phone, .shop-actions a, .glass-dismiss, .studio-entry')]
+      .filter(n=>!n.closest('[hidden]'));
+    const stagger=Math.min(28, duration*.39/Math.max(1,nodes.length-1));
+    const span=Math.max(1,duration-stagger*Math.max(0,nodes.length-1));
+    return nodes.map((node,i)=>node.animate(entering?
+      [{opacity:.08,transform:'translateY(7px)'},{opacity:1,transform:'translateY(0)'}]:
+      [{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-3px)'}],
+      {duration:entering?span:duration,delay:entering?i*stagger:0,fill:entering?'backwards':'both',easing:'cubic-bezier(.2,.72,.25,1)'}));
+  }
+  function installCardMotion(){
+    if('IntersectionObserver' in window){
+      const observer=new IntersectionObserver(entries=>{
+        for(const entry of entries)if(entry.isIntersecting && entry.intersectionRatio>=.15){
+          observer.unobserve(entry.target);contentMotion(entry.target,460);
+        }
+      },{root:document.querySelector('main'),threshold:.15});
+      for(const action of actions)observer.observe(byId(action));
+    }
+    const selector='button, a[href], [role="button"]';
+    const pressed=new Map(), timers=new WeakMap();
+    const control=e=>e.target instanceof Element?e.target.closest(selector):null;
+    function release(id){const b=pressed.get(id);if(b){b.classList.remove('malik-pressed');pressed.delete(id);}}
+    document.addEventListener('pointerdown',e=>{
+      const b=control(e);if(!b||b.disabled||b.closest('[inert]')||e.button!==0)return;
+      release(e.pointerId);pressed.set(e.pointerId,b);b.classList.add('malik-pressed');
+    },{passive:true,capture:true});
+    for(const type of ['pointerup','pointercancel'])window.addEventListener(type,e=>release(e.pointerId),{passive:true,capture:true});
+    window.addEventListener('blur',()=>{for(const id of pressed.keys())release(id);});
+    document.addEventListener('click',e=>{
+      const b=control(e);if(!b||b.disabled||b.closest('[inert]'))return;
+      clearTimeout(timers.get(b));b.classList.add('malik-activated');
+      timers.set(b,setTimeout(()=>b.classList.remove('malik-activated'),180));
+    },true);
+  }
   let bevelPromise=null;
   build();
+  installCardMotion();
   const initialDevice=mobileTour?'mobile':'desktop';
   for(const action of actions)applyMaterial(faces[action],read(initialDevice,action),window.MALIKS_PANEL_PRESETS[initialDevice][action]);
-  window.MalikGlass={actions,names,limits,faces,read,save,defaults,key,sanitize,marker,changeShape,place,reveal,
+  window.MalikGlass={actions,names,limits,faces,read,save,defaults,key,sanitize,marker,changeShape,place,reveal,contentMotion,
     clearCache(){cache.clear();}, reset(device,action){
       const p=sanitize(device,action,defaults(device,action));cache.set(key(device,action),p);
       try{localStorage.removeItem(key(device,action));}catch{}return p;
