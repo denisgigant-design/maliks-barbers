@@ -97,6 +97,7 @@
   mount.key=cacheKey;
   sign.style.width=width+'px';sign.style.height=height+'px';
   sign.style.setProperty('--sign-perspective',width*2.8+'px');
+  sign.style.setProperty('--clipper-scale',material.markerScale/100);
   const color=preset.glow||'#ffffff';
   const rgb=[1,3,5].map(i=>parseInt(color.substring(i,i+2),16)||0);
   const light=(.2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2])/255;
@@ -141,8 +142,8 @@
   }
   const preset = settings[action].lettering;
   const authoredWidth=sw*preset.width/100,scale=glass.read(device,action).markerScale/100;
-  const width=clamp(Math.max(99,authoredWidth*.70)*scale,84,sw*.94);
-  const height=clamp(width*.29,44,69);
+  const width=clamp(Math.max(88,authoredWidth*.38)*scale,76,Math.min(140,sw*.94));
+  const height=58;
   const oldHeight=authoredWidth/(action==='contact'?5:5.3);
   const refX=(sw-authoredWidth)*preset.x/100+authoredWidth/2;
   const refY=(sh-oldHeight)*preset.y/100+oldHeight/2;
@@ -239,16 +240,16 @@
  // Prefer the authored edge and height. If a panel or another marker occupies that
  // space, choose the nearest clear point along either edge without changing the preset.
  function edgePosition(preferredX,otherX,y,w,sh,occupied){
-  const ys=[y,23,sh-23];
-  for(const box of occupied)ys.push(box.y-box.h/2-26,box.y+box.h/2+26);
+  const ys=[y,30,sh-30];
+  for(const box of occupied)ys.push(box.y-box.h/2-34,box.y+box.h/2+34);
   let best={x:preferredX,y},bestScore=Infinity;
   for(const x of [preferredX,otherX]){
    for(const wanted of ys){
-    const cy=clamp(wanted,23,Math.max(23,sh-23));
+    const cy=clamp(wanted,30,Math.max(30,sh-30));
     let score=Math.abs(cy-y)+Math.abs(x-preferredX)*.38;
     for(const b of occupied){
      const dx=Math.max(0,Math.min(x+w/2+2,b.x+b.w/2)-Math.max(x-w/2-2,b.x-b.w/2));
-     const dy=Math.max(0,Math.min(cy+24,b.y+b.h/2)-Math.max(cy-24,b.y-b.h/2));
+     const dy=Math.max(0,Math.min(cy+30,b.y+b.h/2)-Math.max(cy-30,b.y-b.h/2));
      score+=dx*dy*100;
     }
     if(score<bestScore){best={x,y:cy};bestScore=score;}
@@ -282,14 +283,14 @@
    else{
     const right=action==='prices'||(action==='hours'&&at>=109&&at<147);
     const p=glass.read(device,action),preset=settings[action].lettering;
-    const w=clamp((action==='hours'?127:99)*p.markerScale/100,80,Math.max(80,(sw-8)/2));
-    fitMount(action,w,preset,44,false);
+    const w=clamp((action==='hours'?98:82)*p.markerScale/100,72,Math.max(72,(sw-8)/2));
+    fitMount(action,w,preset,58,false);
     button.className='glass-marker edge-pin'+(right?' edge-right':'');
     const edge=gutter>=190 && sw<530 ? -Math.min(gutter*.5,w/2+12+gutter*p.edgeInset/100) :
       w/2+4+(sw-w-8)*p.edgeInset/100;
     const preferred=right?sw-edge:edge;
     const position=edgePosition(preferred,sw-preferred,sh*p.edgeY/100,w,sh,lanes);
-    lanes.push({...position,w,h:44});
+    lanes.push({...position,w,h:58});
     button.style.left=position.x+'px';button.style.top=position.y+'px';button.style.transform='';
    }
    if(activeElement===button && !editing && document.activeElement!==button)button.focus({preventScroll:true});

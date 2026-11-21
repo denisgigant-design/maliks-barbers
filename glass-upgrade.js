@@ -6,7 +6,7 @@
   const detail = byId('scenePanel');
   const actions = ['hours', 'contact', 'prices'];
   const names = {hours:'Opening hours', contact:'Booking', prices:'Pricing'};
-  const shapes = {hours:'facet', contact:'shield', prices:'asymmetric'};
+  const shapes = {hours:'rounded', contact:'rounded', prices:'rounded'};
   const profiles = {
     facet:[[0,13],[10,0],[87,0],[100,9],[100,86],[90,100],[12,100],[0,90]],
     shield:[[0,5],[16,0],[84,0],[100,5],[96,79],[82,91],[50,100],[18,91],[4,79]],
@@ -33,7 +33,7 @@
     markerScale:[65,150],edgeInset:[0,45],edgeY:[5,95]};
   const cache = new Map();
   function defaults(device,action) {
-    return {blur:device==='mobile'?14:20,opacity:43,dock:'smart',shape:shapes[action],
+    return {classicStyle:true,blur:device==='mobile'?14:20,opacity:43,dock:'smart',shape:shapes[action],
       scale:100,markerScale:100,rim:52,duration:350,edgeInset:3,edgeY:action==='hours'?17:77,
       ...window.MALIKS_GLASS_PRESETS?.[device]?.[action]};
   }
@@ -44,13 +44,14 @@
       p[prop]=Number.isFinite(number)?clamp(number,lo,hi):baseline[prop];
     }
     if(!['smart','authored'].includes(p.dock))p.dock='authored';
-    if(!Object.values(shapes).includes(p.shape))p.shape=shapes[action];
+    if(!['rounded','facet','shield','asymmetric'].includes(p.shape))p.shape=shapes[action];
     return p;
   }
   function read(device,action) {
     const name=key(device,action);
     if(cache.has(name))return cache.get(name);
     const draft=readJSON(name)||{};
+    if(draft.shape && !draft.classicStyle) draft.shape="rounded";
     const layout=readJSON('maliks-wall-mount-layout-v2-'+device);
     const manual=layout?.panels?.[action];
     let published=window.MALIKS_PANEL_PRESETS?.[device]?.[action];
@@ -60,7 +61,7 @@
     cache.set(name,p);return p;
   }
   function save(device,action,delta) {
-    const p=sanitize(device,action,{...read(device,action),...delta});
+    const p=sanitize(device,action,{...read(device,action),...delta,classicStyle:true});
     const name=key(device,action);
     cache.set(name,p);
     try{localStorage.setItem(name,JSON.stringify(p));}catch{byId('peStatus').textContent='Device storage is unavailable. Export a backup to keep these settings.';}
@@ -77,6 +78,8 @@
   function changeShape(node,shape,bend=0) {
     const tag=shape+'/'+bend;
     if(node.dataset.profile===tag)return;
+    if(shape==='marker' && !node.querySelector('.glass-rim')){node.dataset.profile=tag;return;}
+    if(shape==='rounded'){node.dataset.profile=tag;node.dataset.shape=shape;node.style.removeProperty('--cut');return;}
     const points=profiles[shape].map(([x,y])=>[x,y]);
     if(shape==='marker'){
       // Change the central ridge and opposite lip while the marker keeps its wall pose.
@@ -94,14 +97,10 @@
     button.textContent='';
     button.style.setProperty('--wall-light-x',{hours:'29%',contact:'72%',prices:'40%'}[action]);
     const pose=element('span','marker-pose'),face=element('span','marker-surface');
-    surface(face,'marker');pose.append(face);
-    const label=element('span','marker-label'),icon=svg('svg'),path=svg('path');
-    icon.setAttribute('viewBox','0 0 20 20');icon.setAttribute('aria-hidden','true');
-    path.setAttribute('d',icons[action]);path.setAttribute('stroke','currentColor');path.setAttribute('fill','none');
-    path.setAttribute('stroke-width','1.35');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');
-    icon.append(path);label.append(icon,document.createTextNode(names[action]));
-    const status=element('i','marker-status');status.setAttribute('aria-hidden','true');
-    button.append(pose,label,status);
+    const clipper=element('i','nav-clipper');clipper.setAttribute('aria-hidden','true');
+    clipper.append(element('i','clipper-grip'),element('i','clipper-blade'));
+    face.append(clipper);pose.append(face);
+    button.append(pose,element('span','marker-label',names[action]));
     return face;
   }
   const faces={},rows=[...byId('prices').querySelectorAll('dl>div')].map(row=>({
@@ -111,7 +110,7 @@
   function openStudio(opener) {
     const slug=selected!==null && rows[selected]?.name==='Skin Fade'?'skin-fade':undefined;
     opener.setAttribute('aria-busy','true');
-    if(!studioPromise)studioPromise=import('./look-studio.js?v=emerald2-flat');
+    if(!studioPromise)studioPromise=import('./look-studio.js?v=classic3-flat');
     studioPromise.then(studio=>{if(opener.isConnected && !opener.closest('[hidden],[inert]'))return studio.open(opener,slug);}).catch(()=>{
       studioPromise=null;const status=opener.parentElement.querySelector('[role=status]');
       if(status)status.textContent='Look Studio could not load. Select it again to retry.';
@@ -227,7 +226,7 @@
     detail.dataset.drawer=String(drawer);detail.dataset.narrow=String(w<245);detail.dataset.side=side;
     if(!detail.hidden && !reduced.matches && matchMedia('(hover:hover) and (pointer:fine)').matches &&
        !navigator.connection?.saveData && (navigator.deviceMemory||8)>=4){
-      if(!bevelPromise)bevelPromise=import('./glass-mark.mjs?v=emerald2-flat').catch(()=>null);
+      if(!bevelPromise)bevelPromise=import('./glass-mark.mjs?v=classic3-flat').catch(()=>null);
       bevelPromise.then(api=>{if(api && !detail.hidden && !detail.inert && detail.dataset.action===action)api.attach(face,p.rim);});
     }
   }

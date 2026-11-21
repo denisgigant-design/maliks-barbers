@@ -82,3 +82,34 @@
 @media(prefers-reduced-motion:no-preference){.studio-media[data-photo=approved] img,#lookStudio[open] #studioMount{animation:studio-appear .22s ease-out}@keyframes studio-appear{from{opacity:.35}to{opacity:1}}}
 .studio-frame img{user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
 .glass-content:focus-visible{outline:1px solid #d6e4d8;outline-offset:-1px}
+/* Rounded frosted glass, with classic clipper navigation. */
+.glass-sheet[data-shape=rounded],.shop-card[data-shape=rounded]{--radius:24px;border-radius:var(--radius)}
+[data-shape=rounded]>.glass-skin{clip-path:none;-webkit-clip-path:none;border-radius:inherit;border:1px solid rgba(220,240,229,var(--rim,.36));box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 10px 36px rgba(0,0,0,.22);background:linear-gradient(145deg,rgba(225,244,234,.12),transparent 42%,rgba(0,10,7,.10)),rgba(var(--glass-rgb),var(--glass-opacity));backdrop-filter:blur(var(--glass-blur)) saturate(.9) brightness(.80);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(.9) brightness(.80)}
+[data-shape=rounded]>.glass-rim{display:none}
+.shop-card[data-shape=rounded]{padding:clamp(24px,3vw,42px)}
+#studioMount{clip-path:none;-webkit-clip-path:none;border-radius:24px;border:1px solid #bccbb855}
+#panelEditor,dialog:not(#lookStudio){border-radius:18px}
+.glass-marker,.door-dot{--clipper-color:240,248,244;--clipper-size:19px;--clipper-turn:-15deg;overflow:visible;--clipper-center:35%;--label-top:65%}
+.glass-marker[data-view=hours]{--clipper-color:87,244,130}.glass-marker[data-view=contact]{--clipper-color:58,181,255}.glass-marker[data-view=prices]{--clipper-color:255,82,95}
+.glass-marker.edge-right{--clipper-turn:15deg}
+.door-dot{--clipper-size:21px;--clipper-center:59%;--label-top:calc(59% + 21px);display:block}
+.glass-marker .marker-surface{isolation:auto}
+.nav-clipper{position:absolute;display:block;left:50%;top:var(--clipper-center);width:calc(var(--clipper-size)*var(--clipper-scale,1));height:calc(var(--clipper-size)*1.46*var(--clipper-scale,1));transform:translate(-50%,-50%) rotate(var(--clipper-turn));pointer-events:none;animation:classic-clipper-breathe 2.15s ease-in-out infinite}
+.nav-clipper::before{content:"";position:absolute;inset:9% 16% 2%;border-radius:5px 5px 45% 45%;background:rgba(var(--clipper-color),.85);filter:blur(4px);animation:classic-clipper-halo 2.15s ease-in-out infinite}
+.clipper-grip{position:absolute;inset:18% 17% 0;border:1px solid rgba(var(--clipper-color),.96);border-radius:4px 4px 46% 46% / 12% 12% 24% 24%;background:linear-gradient(110deg,#ffffffe0,rgba(var(--clipper-color),.66) 36%,rgba(var(--clipper-color),.32) 68%,#182a34a6);box-shadow:inset -1px -2px 2px #101a265c,0 1px 3px #061322b3}
+.clipper-grip::before{content:"";position:absolute;top:28%;left:37%;width:26%;height:32%;border-radius:3px;background:linear-gradient(#f7ffff 0 32%,#172a38 32% 100%);box-shadow:0 0 0 1px #18313e99}
+.clipper-blade{position:absolute;inset:0 5% auto;height:27%;filter:drop-shadow(0 1px 1px #0a1729)}
+.clipper-blade::before,.clipper-blade::after{content:"";position:absolute;left:0;right:0}
+.clipper-blade::before{top:0;height:64%;background:repeating-linear-gradient(90deg,#f0fcff 0 1px,rgb(var(--clipper-color)) 1px 2px,transparent 2px 3.5px)}
+.clipper-blade::after{top:47%;bottom:0;border-radius:1px 1px 3px 3px;background:linear-gradient(#fff,rgb(var(--clipper-color)) 48%,#3e5365)}
+.glass-marker .marker-label,.door-dot .marker-label{inset:auto auto auto 50%;top:var(--label-top);transform:translateX(-50%);margin:0;display:block;color:#fff;font:600 10px/1.2 var(--sans);letter-spacing:.055em;text-transform:uppercase;text-shadow:0 1px 3px #000,0 0 7px #000;white-space:nowrap}
+.glass-marker[aria-expanded=true] .marker-label{color:rgb(var(--clipper-color))}
+.wall-sign[aria-expanded=true] .marker-pose::before{display:none}
+.door-dot:focus-visible,.glass-marker:focus-visible{outline:1px solid #e0eee6;border-radius:12px;outline-offset:0}
+@media(hover:hover){.glass-marker:hover .marker-label{transform:translate(-50%,-1px)}}
+@keyframes classic-clipper-breathe{0%,100%{transform:translate(-50%,-50%) rotate(var(--clipper-turn)) scale(.96)}50%{transform:translate(-50%,-50%) rotate(var(--clipper-turn)) scale(1.12)}}
+@keyframes classic-clipper-halo{0%,100%{opacity:.26;transform:scale(.95)}50%{opacity:.72;transform:scale(1.22)}}
+html.tour-navigating .nav-clipper,html.tour-navigating .nav-clipper::before{animation-play-state:paused}
+@media(max-width:700px){.glass-marker{--clipper-size:17px}.door-dot{--clipper-size:18px;--clipper-center:64%;--label-top:calc(64% + 19px)}.glass-marker .marker-label,.door-dot .marker-label{font-size:9px}.glass-sheet[data-shape=rounded],.shop-card[data-shape=rounded]{--radius:19px}#scenePanel[data-drawer=true] .glass-sheet[data-shape=rounded]{padding:12px 18px}}
+@media(prefers-reduced-motion:reduce){.nav-clipper,.nav-clipper::before{animation:none!important}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){[data-shape=rounded]>.glass-skin{background:rgba(12,34,25,.93)}}

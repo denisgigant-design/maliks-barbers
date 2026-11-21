@@ -13,7 +13,7 @@
   const group=document.createElement('fieldset');group.className='pe-group';
   group.innerHTML=`<legend>Glass and motion</legend>
    <label for="mgDock">Placement</label><select id="mgDock"><option value="smart">Smart edge docking</option><option value="authored">Saved position</option></select>
-   <label for="mgShape">Silhouette</label><select id="mgShape"><option value="facet">Vertical facets</option><option value="shield">Sculpted shield</option><option value="asymmetric">Stepped asymmetric</option></select>`;
+   <label for="mgShape">Silhouette</label><select id="mgShape"><option value="rounded">Rounded glass</option><option value="facet">Vertical facets</option><option value="shield">Sculpted shield</option><option value="asymmetric">Stepped asymmetric</option></select>`;
   editor.querySelector('.pe-actions').before(group);
   const fields={scale:['Panel scale','%'],markerScale:['Marker scale','%'],edgeInset:['Directional marker inset','%'],
     edgeY:['Directional marker height','%'],opacity:['Glass opacity','%'],blur:['Backdrop blur',' px'],
@@ -83,7 +83,7 @@
       for(const a of G.actions){
         const layout=v.panels?.[d]?.[a],p=v.glass?.[d]?.[a];
         if(!rangeFields(layout,coords) || !rangeFields(layout.lettering,lettering)||!colour(layout.lettering.glow))throw Error('Invalid '+d+' marker or panel placement.');
-        if(!rangeFields(p,G.limits)||!['smart','authored'].includes(p.dock)||!['facet','shield','asymmetric'].includes(p.shape))throw Error('Invalid '+d+' glass settings.');
+        if(!rangeFields(p,G.limits)||!['smart','authored'].includes(p.dock)||!['rounded','facet','shield','asymmetric'].includes(p.shape))throw Error('Invalid '+d+' glass settings.');
       }
       const b=v.barber?.[d];
       if(!rangeFields(b,{x:[0,100],bottom:[-25,55],size:[18,145],depth:[-65,65],shadow:[0,100]})||
@@ -99,7 +99,7 @@
     for(const d of devices){
       entries.push([L.layoutKey(d),{basedOn:JSON.stringify(window.MALIKS_PANEL_PRESETS[d]),panels:v.panels[d]}],
         [barberKey(d),{version:4,settings:v.barber[d]}]);
-      for(const a of G.actions)entries.push([G.key(d,a),v.glass[d][a]]);
+      for(const a of G.actions)entries.push([G.key(d,a),{...v.glass[d][a],classicStyle:true}]);
       for(const id of editors)entries.push([dockKey(d,id),v.editorDocks[d][id]===null?null:{fraction:v.editorDocks[d][id]}]);
     }
     entries.push(['maliks-card-drafts-v1',v.cards],['maliks-card-drafts-v1-edited',1],['maliks-lighting-tracks-v1',v.lighting]);
