@@ -113,3 +113,8 @@ html.tour-navigating .nav-clipper,html.tour-navigating .nav-clipper::before{anim
 @media(max-width:700px){.glass-marker{--clipper-size:17px}.door-dot{--clipper-size:18px;--clipper-center:64%;--label-top:calc(64% + 19px)}.glass-marker .marker-label,.door-dot .marker-label{font-size:9px}.glass-sheet[data-shape=rounded],.shop-card[data-shape=rounded]{--radius:19px}#scenePanel[data-drawer=true] .glass-sheet[data-shape=rounded]{padding:12px 18px}}
 @media(prefers-reduced-motion:reduce){.nav-clipper,.nav-clipper::before{animation:none!important}}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){[data-shape=rounded]>.glass-skin{background:rgba(12,34,25,.93)}}
+
+/* The published material is resolved before visibility; no opacity transition on entry. */
+#scenePanel .glass-sheet{transition:none;}
+#scenePanel .glass-sheet>.glass-rim{color:rgb(var(--glass-border-rgb,233,243,233));}
+#scenePanel [data-shape=rounded]>.glass-skin{border-color:rgba(var(--glass-border-rgb,220,240,229),var(--rim,.36));}

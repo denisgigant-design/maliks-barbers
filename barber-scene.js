@@ -19,7 +19,7 @@
   const docking = new Map();
   const clamp=(v,min,max)=>Math.min(max,Math.max(min,Number(v)||0));
   const sessionOverrides={};
-  const localKey=d=>'maliks-pricing-barber-v3-'+d;
+  const localKey=d=>'maliks-pricing-barber-v4-'+d;
   function readLocal(d){
     if(sessionOverrides[d])return sessionOverrides[d];
     try {const v=JSON.parse(localStorage.getItem(localKey(d)));
@@ -93,9 +93,9 @@
     dock.innerHTML='<button type="button" aria-label="Move controls to left edge" title="Move controls left">◀</button><button type="button" aria-label="Move controls to right edge" title="Move controls right">▶</button>';
     const lastButton=header.querySelector('button');
     if(lastButton) header.insertBefore(dock,lastButton); else header.append(dock);
-    const key='maliks-editor-horizontal-v1-'+device+'-'+id;
+    const key='maliks-editor-horizontal-v4-'+device+'-'+id;
     const maxTravel=()=>Math.max(0,innerWidth-dialog.getBoundingClientRect().width-8);
-    const remembered=()=>{try {const d=JSON.parse(localStorage.getItem(key));return d&&typeof d.fraction==='number'?clamp(d.fraction,0,1):null;}catch(_){return null;}};
+    const remembered=()=>{try {const d=JSON.parse(localStorage.getItem(key));if(d&&typeof d.fraction==='number')return clamp(d.fraction,0,1);}catch(_){}return window.MALIKS_EXPERIENCE_DEFAULTS?.editorDocks?.[device]?.[id]??null;};
     let fraction=remembered();
     docking.set(id,{refresh(){fraction=remembered();dialog.style.left='';dialog.style.right='';init();},
       suggest(side){if(remembered()===null)position(side,false);}});

@@ -28,7 +28,7 @@
   const svg = tag => document.createElementNS('http://www.w3.org/2000/svg', tag);
   const readJSON = key => {try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
   const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
-  const key = (device,action) => 'maliks-glass-settings-v1-'+device+'-'+action;
+  const key = (device,action) => 'maliks-glass-settings-v4-'+device+'-'+action;
   const limits = {blur:[0,36],opacity:[12,85],rim:[0,100],duration:[0,1000],scale:[65,135],
     markerScale:[65,150],edgeInset:[0,45],edgeY:[5,95]};
   const cache = new Map();
@@ -52,7 +52,7 @@
     if(cache.has(name))return cache.get(name);
     const draft=readJSON(name)||{};
     if(draft.shape && !draft.classicStyle) draft.shape="rounded";
-    const layout=readJSON('maliks-wall-mount-layout-v2-'+device);
+    const layout=readJSON('maliks-wall-mount-layout-v4-'+device);
     const manual=layout?.panels?.[action];
     let published=window.MALIKS_PANEL_PRESETS?.[device]?.[action];
     try{published=JSON.parse(layout.basedOn)[action]||published;}catch{}
@@ -173,13 +173,17 @@
     detail.setAttribute('aria-labelledby','glass-title-'+action);
     faces[action].querySelector('.glass-content').scrollTop=0;
   }
-  function applyMaterial(node,p) {
+  function applyMaterial(node,p,layout) {
     node.style.setProperty('--glass-blur',p.blur+'px');node.style.setProperty('--glass-opacity',String(p.opacity/100));
     node.style.setProperty('--rim',String(p.rim/100));changeShape(node,p.shape);
+    const rgb=hex=>/^#[0-9a-f]{6}$/i.test(hex||'')?[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)).join(','):null;
+    const tint=rgb(layout?.glass),border=rgb(layout?.border);
+    if(tint)node.style.setProperty('--glass-rgb',tint);
+    if(border)node.style.setProperty('--glass-border-rgb',border);
   }
   const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
   function place(device,action,layout) {
-    const p=read(device,action), face=faces[action];applyMaterial(face,p);
+    const p=read(device,action), face=faces[action];applyMaterial(face,p,layout);
     const box=scene.getBoundingClientRect(),stage=scene.parentElement.getBoundingClientRect();
     const sw=box.width, sh=box.height, gap=box.left-stage.left, full=stage.width, factor=p.scale/100;
     if(!sw||!sh)return;
@@ -224,7 +228,7 @@
     }
     Object.assign(detail.style,{width:w+'px',height:h+'px',left:x+'px',top:y+'px'});
     detail.dataset.drawer=String(drawer);detail.dataset.narrow=String(w<245);detail.dataset.side=side;
-    if(!detail.hidden && !reduced.matches && matchMedia('(hover:hover) and (pointer:fine)').matches &&
+    if(p.rim>0 && !detail.hidden && !reduced.matches && matchMedia('(hover:hover) and (pointer:fine)').matches &&
        !navigator.connection?.saveData && (navigator.deviceMemory||8)>=4){
       if(!bevelPromise)bevelPromise=import('./glass-mark.mjs?v=classic3-flat').catch(()=>null);
       bevelPromise.then(api=>{if(api && !detail.hidden && !detail.inert && detail.dataset.action===action)api.attach(face,p.rim);});
@@ -232,6 +236,8 @@
   }
   let bevelPromise=null;
   build();
+  const initialDevice=mobileTour?'mobile':'desktop';
+  for(const action of actions)applyMaterial(faces[action],read(initialDevice,action),window.MALIKS_PANEL_PRESETS[initialDevice][action]);
   window.MalikGlass={actions,names,limits,faces,read,save,defaults,key,sanitize,marker,changeShape,place,reveal,
     clearCache(){cache.clear();}, reset(device,action){
       const p=sanitize(device,action,defaults(device,action));cache.set(key(device,action),p);

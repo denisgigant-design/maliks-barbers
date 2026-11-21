@@ -8,8 +8,8 @@
  const iosWebkit = document.documentElement.classList.contains('ios-webkit');
  const glass=window.MalikGlass;
  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
- const key = 'maliks-card-drafts-v1';
- const layoutKey = platform => 'maliks-wall-mount-layout-v2-' + platform;
+ const key = 'maliks-card-drafts-v4';
+ const layoutKey = platform => 'maliks-wall-mount-layout-v4-' + platform;
  const publishedLayouts = window.MALIKS_PANEL_PRESETS;
  const tracks = window.MALIKS_WALL_TRACKS[device];
  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -58,9 +58,9 @@
    localStorage.setItem(layoutKey(platform), JSON.stringify({basedOn, panels:layouts[platform]}));
   } catch { $('peStatus').textContent = 'Device storage is unavailable. Export a backup to keep your settings.'; }
  }
- let cards=[],selectedId=null,cardDrag=null;
+ let cards=structuredClone(window.MALIKS_EXPERIENCE_DEFAULTS?.cards || []),selectedId=null,cardDrag=null;
  try{const existing=JSON.parse(localStorage.getItem(key));if(Array.isArray(existing))cards=existing}catch{}
- if(!cards.length && !stored(key+'-edited')){
+ if(!cards.length && !stored(key+'-edited') && !window.MALIKS_EXPERIENCE_DEFAULTS?.cards){
   cards=[['hours',52,105,50],['contact',106,155,16],['prices',156,LAST,68]].map(([action,start,end,x])=>({
    id:'shop-'+action,action,start,end,x,y:action==='hours'?28:35,size:mobile?52:action==='hours'?45:30,shape:'long',text:''
   }));
@@ -338,28 +338,27 @@
  let motionSerial=0;
  function stopMotion() {
   motionSerial++;
-  if(motion){if(motion.kill)motion.kill();else motion.cancel();motion=null;}
+  if(motion){motion.cancel();motion=null;}
+  // An interrupted close must not leave a translucent panel on its next opening.
+  for(const face of Object.values(glass.faces)){
+   face.style.removeProperty('opacity');face.style.removeProperty('transform');
+  }
  }
  function transition(show,animate,action,done) {
   const face=glass.faces[action],serial=++motionSerial;
   const ms=glass.read(device,action).duration*(show?1:.7);
   const offset=detail.dataset.side==='bottom'?[0,14]:[detail.dataset.side==='right'?16:-16,0];
-  const finish=()=>{
-   if(serial!==motionSerial)return;
-   motion=null;face.style.opacity='';face.style.transform='';
-   if(done)done();
-  };
-  if(!animate || reduced.matches || !ms){finish();return;}
-  const initial=show?0:Math.min(1,Number(getComputedStyle(face).opacity));
-  if(window.gsap){
-   const from=show?{x:offset[0],y:offset[1],opacity:0}:{opacity:initial};
-   const to=show?{x:0,y:0,opacity:1}:{x:offset[0]*.62,y:offset[1]*.62,opacity:0};
-   motion=gsap.fromTo(face,from,{...to,duration:ms/1000,ease:show?'power3.out':'power2.in',overwrite:true,onComplete:finish});
-  }else if(typeof face.animate==='function'){
-   const displaced='translate('+offset[0]+'px,'+offset[1]+'px)';
-   const frames=show?[{opacity:0,transform:displaced},{opacity:1,transform:'none'}]:[{opacity:initial,transform:getComputedStyle(face).transform},{opacity:0,transform:displaced}];
-   motion=face.animate(frames,{duration:ms,easing:show?'cubic-bezier(.18,.76,.23,1)':'ease-in'});motion.onfinish=finish;
-  }else finish();
+  const finish=()=>{if(serial!==motionSerial)return;motion=null;if(done)done();};
+  if(!animate || reduced.matches || !ms || typeof face.animate!=='function'){finish();return;}
+  // The backdrop-filter cannot sample the room if its ancestor is animated from
+  // opacity zero. Keep the glass at its final material from the first visible frame.
+  // Retain the subtle slide on content only; the glass itself remains stationary.
+  const nodes=show?[...face.children].filter(n=>!n.matches('.glass-skin,.glass-rim')):[face];
+  const displacement='translate('+offset[0]+'px,'+offset[1]+'px)';
+  const frames=show?[{transform:displacement},{transform:'none'}]:[{opacity:1},{opacity:0}];
+  const animations=nodes.map(n=>n.animate(frames,{duration:ms,easing:show?'cubic-bezier(.18,.76,.23,1)':'ease-in'}));
+  motion={cancel(){animations.forEach(a=>a.cancel());}};
+  if(animations.length)Promise.all(animations.map(a=>a.finished)).then(finish,()=>{});else finish();
  }
  function cancelDrag() {
   if (dragPanel) clearTimeout(dragPanel.timer);
@@ -391,9 +390,10 @@
   ignoreClick = false;
   originScroll = scroller.scrollTop;
   detail.dataset.action=action;
+  // Commit both geometry and material before making the panel visible.
   glass.reveal(action);
-  detail.hidden=false;detail.inert=false;detail.removeAttribute('inert');
   applyPanelStyle();
+  detail.hidden=false;detail.inert=false;detail.removeAttribute('inert');
   transition(true,animate,action);
   render();
   if (focus) detail.focus({preventScroll:true});

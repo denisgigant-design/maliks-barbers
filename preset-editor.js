@@ -4,8 +4,8 @@
   const G=window.MalikGlass,L=window.MalikLayout,B=window.MalikBarber;
   const $=id=>document.getElementById(id), editor=$('panelEditor');
   const devices=['desktop','mobile'],editors=['panelEditor','panel','cardsPanel'];
-  const dockKey=(d,id)=>'maliks-editor-horizontal-v1-'+d+'-'+id;
-  const barberKey=d=>'maliks-pricing-barber-v3-'+d;
+  const dockKey=(d,id)=>'maliks-editor-horizontal-v4-'+d+'-'+id;
+  const barberKey=d=>'maliks-pricing-barber-v4-'+d;
   const local=k=>{try{return JSON.parse(localStorage.getItem(k));}catch{return null;}};
   const both=fn=>Object.fromEntries(devices.map(d=>[d,fn(d)]));
   const sections=fn=>Object.fromEntries(G.actions.map(a=>[a,fn(a)]));
@@ -60,7 +60,7 @@
   function snapshot(){
     return {format:'maliks-cinematic-presets',version:2,panels:structuredClone(L.layouts),
       glass:both(d=>sections(a=>G.read(d,a))),barber:both(d=>B.value(d)),
-      editorDocks:both(d=>Object.fromEntries(editors.map(id=>[id,local(dockKey(d,id))?.fraction??null]))),
+      editorDocks:both(d=>Object.fromEntries(editors.map(id=>[id,local(dockKey(d,id))?.fraction??window.MALIKS_EXPERIENCE_DEFAULTS?.editorDocks?.[d]?.[id]??null]))),
       cards:L.snapshotCards(),lighting:window.MalikLighting.snapshot()};
   }
   const isObject=x=>x!==null && typeof x==='object' && !Array.isArray(x);
@@ -102,7 +102,7 @@
       for(const a of G.actions)entries.push([G.key(d,a),{...v.glass[d][a],classicStyle:true}]);
       for(const id of editors)entries.push([dockKey(d,id),v.editorDocks[d][id]===null?null:{fraction:v.editorDocks[d][id]}]);
     }
-    entries.push(['maliks-card-drafts-v1',v.cards],['maliks-card-drafts-v1-edited',1],['maliks-lighting-tracks-v1',v.lighting]);
+    entries.push(['maliks-card-drafts-v4',v.cards],['maliks-card-drafts-v4-edited',1],['maliks-lighting-tracks-v4',v.lighting]);
     const previous=entries.map(([key])=>[key,localStorage.getItem(key)]);
     let committed=0;
     try{for(const [key,value] of entries){if(value===null)localStorage.removeItem(key);else localStorage.setItem(key,JSON.stringify(value));committed++;}}
@@ -114,7 +114,7 @@
   }
   $('saveExperience').onclick=()=>{try{install(snapshot());status('Desktop and mobile settings saved on this device.');}catch(e){status('Could not save settings. '+e.message);}};
   $('exportExperience').onclick=()=>{download('maliks-experience.json',JSON.stringify(snapshot(),null,2),'application/json');status('Backup exported with both layouts, editor positions, card cues and lighting.');};
-  $('mgExport').onclick=()=>{download('glass-presets.js','/* Published glass settings */\nwindow.MALIKS_GLASS_PRESETS = '+JSON.stringify(snapshot().glass,null,2)+';\n','text/javascript');status('glass-presets.js exported for both layouts.');};
+  $('mgExport').onclick=()=>{download('glass-presets.js','/* Published glass settings */\nwindow.MALIKS_GLASS_PRESETS = '+JSON.stringify(snapshot().glass,null,2)+';\nwindow.MALIKS_EXPERIENCE_DEFAULTS = '+JSON.stringify({cards:snapshot().cards,lighting:snapshot().lighting,editorDocks:snapshot().editorDocks},null,2)+';\n','text/javascript');status('glass-presets.js exported for both layouts.');};
   $('importExperience').onclick=()=>$('presetFile').click();
   $('presetFile').onchange=async e=>{
     const input=e.target,file=input.files[0];if(!file)return;

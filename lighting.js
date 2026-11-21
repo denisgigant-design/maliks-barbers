@@ -1,24 +1,19 @@
 'use strict';
 const $=id=>document.getElementById(id);
 const movie=$('movie'),canvas=$('screen'),scroller=$('scroller'),panel=$('panel');
-const FPS=24, LAST=239, storageKey='maliks-lighting-tracks-v1';
+const FPS=24, LAST=239, storageKey='maliks-lighting-tracks-v4';
 const fields={
  intensity:['Intensity',0,200],color:['Colour'],exposure:['Exposure',-100,100],warmth:['Warmth',-100,100],saturation:['Saturation',0,200],
  x:['Horizontal position',-30,130],y:['Vertical position',-50,100],angle:['Angle',-180,180],width:['Beam width',5,100]
 };
 const main={on:true,intensity:100,color:'#ffffff',exposure:0,warmth:0,saturation:100};
 const spot={on:true,intensity:70,color:'#ffd89c',x:50,y:-18,angle:0,width:45};
-const published={version:1,fps:FPS,video:'walkthrough.mp4',tracks:[{name:'Main light',kind:'main',keys:[{frame:0,...main}]}]};
+const published=window.MALIKS_EXPERIENCE_DEFAULTS?.lighting || {version:1,fps:FPS,video:'walkthrough.mp4',tracks:[{name:'Main light',kind:'main',keys:[{frame:0,...main}]}]};
 function load(){
  try{
   const recent=JSON.parse(localStorage.getItem(storageKey));
   if(recent?.tracks?.[0]?.kind==='main')return recent;
-  const old=JSON.parse(localStorage.getItem('maliks-lighting-v1'));
-  if(Array.isArray(old)&&old.length===6){
-   const migrated=structuredClone(published);
-   Object.assign(migrated.tracks[0].keys[0],{exposure:old[0],warmth:old[1],saturation:old[2]});
-   migrated.tracks.push({kind:'spot',name:'Spotlight 1',keys:[{...spot,frame:0,intensity:old[3],angle:old[4],width:old[5]}]});return migrated;
-  }
+
  }catch{}
  return structuredClone(published);
 }
