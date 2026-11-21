@@ -135,3 +135,37 @@ html.tour-navigating .nav-clipper,html.tour-navigating .nav-clipper::before{anim
 @media(prefers-reduced-motion:no-preference){
  :where(.glass-sheet,.shop-card,#lookStudio) :is(button,a[href]){transition:box-shadow .14s ease-out,color .14s ease-out}
 }
+
+/* V6 typography: local system fonts only; no network dependency or layout transforms. */
+:is(.glass-sheet[data-kind=hours],#hours){--section-heading:"Trebuchet MS","Avenir Next",Arial,sans-serif;--section-copy:"Trebuchet MS",Arial,sans-serif;--section-weight:600}
+:is(.glass-sheet[data-kind=contact],#contact){--section-heading:Georgia,"Times New Roman",serif;--section-copy:Georgia,"Times New Roman",serif;--section-weight:400}
+:is(.glass-sheet[data-kind=prices],#prices){--section-heading:"Arial Narrow","Roboto Condensed","Helvetica Neue",Arial,sans-serif;--section-copy:"Arial Narrow","Roboto Condensed",Arial,sans-serif;--section-weight:750}
+:is(.glass-sheet,.shop-card) h2{font-family:var(--section-heading,var(--display));font-weight:var(--section-weight,400)}
+:is(.glass-sheet[data-kind=hours],#hours) h2{letter-spacing:-.055em;}
+:is(.glass-sheet[data-kind=hours],#hours) :is(dt,dd){font-family:var(--section-copy);font-variant-numeric:tabular-nums}
+:is(.glass-sheet[data-kind=contact],#contact) :is(address,p,.shop-phone){font-family:var(--section-copy)}
+:is(.glass-sheet[data-kind=contact],#contact) .shop-phone{font-style:italic;letter-spacing:-.035em;transform-origin:left center}
+:is(.glass-sheet[data-kind=prices],#prices) h2{letter-spacing:-.055em}
+#prices h2{font-size:clamp(24px,2.4vw,37px)}
+.service-name{font-family:"Arial Narrow","Roboto Condensed",Arial,sans-serif;font-weight:600;min-width:0;display:block}
+.service-price{font-family:ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-variant-numeric:tabular-nums;font-size:.97em;letter-spacing:-.035em;display:block;transform-origin:right center}
+.service-row{isolation:isolate;overflow:hidden;}
+.service-row::after{content:"";position:absolute;z-index:-1;inset:auto 0 0;height:1px;pointer-events:none;background:linear-gradient(90deg,transparent,#dcefe4a8,transparent);transform:scaleX(0);transform-origin:left;opacity:0}
+.service-row[aria-pressed=true]::after{transform:scaleX(1);opacity:1}
+.service-row[aria-pressed=true] .service-name{color:#f3fff7}
+.service-row[aria-pressed=true] .service-price{color:#f0fff5;text-shadow:0 0 10px #e1ffed40}
+@media(prefers-reduced-motion:no-preference){
+ .service-row::after{transition:transform .32s cubic-bezier(.2,.75,.2,1),opacity .24s}
+ .service-row::before{transition:transform .22s,opacity .22s,background .22s}
+ .service-row[aria-pressed=true]::before{transform:rotate(45deg) scale(1.22)}
+ .service-row.malik-activated::after{animation:malik-price-trace .34s ease-out}
+ .studio-entry svg{transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+ .studio-entry:is(.malik-activated,.malik-pressed) svg{transform:translate(2px,-2px)}
+ :is(.glass-sheet,.shop-card) .shop-actions a{transition:color .2s,box-shadow .2s,text-decoration-color .2s}
+ @keyframes malik-price-trace{from{transform:scaleX(0);opacity:.35}to{transform:scaleX(1);opacity:1}}
+}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+ .service-row:hover::after{transform:scaleX(1);opacity:.55}
+ .studio-entry:hover svg{transform:translate(3px,-3px)}
+}
+@media(prefers-reduced-motion:reduce){.service-row::before,.service-row::after,.studio-entry svg{transition:none!important;animation:none!important}}

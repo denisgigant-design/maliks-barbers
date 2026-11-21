@@ -234,17 +234,43 @@
       bevelPromise.then(api=>{if(api && !detail.hidden && !detail.inert && detail.dataset.action===action)api.attach(face,p.rim);});
     }
   }
-  // V5: animate information only. Never animate glass or panel geometry.
+  // V6: choreography lives on content nodes, never on panel geometry/material.
   function contentMotion(root, duration, entering=true) {
     if(reduced.matches || !duration || !root.animate)return [];
+    const kind=root.dataset.kind||root.id;
     const nodes=[...root.querySelectorAll('header h2, :scope > h2, :scope > .signature, dl > div, .service-row, address, p, .shop-phone, .shop-actions a, .glass-dismiss, .studio-entry')]
       .filter(n=>!n.closest('[hidden]'));
-    const stagger=Math.min(28, duration*.39/Math.max(1,nodes.length-1));
-    const span=Math.max(1,duration-stagger*Math.max(0,nodes.length-1));
-    return nodes.map((node,i)=>node.animate(entering?
-      [{opacity:.08,transform:'translateY(7px)'},{opacity:1,transform:'translateY(0)'}]:
-      [{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-3px)'}],
-      {duration:entering?span:duration,delay:entering?i*stagger:0,fill:entering?'backwards':'both',easing:'cubic-bezier(.2,.72,.25,1)'}));
+    const animations=[];
+    const ease='cubic-bezier(.18,.78,.25,1)';
+    const play=(node,frames,ms,delay=0)=>animations.push(node.animate(frames,{duration:Math.max(1,ms),delay,fill:entering?'backwards':'both',easing:ease}));
+    if(!entering){
+      nodes.forEach(n=>play(n,[{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-4px)'}],duration));
+      return animations;
+    }
+    // Preset duration remains the user's speed control; longer staged pricing reveal.
+    const t=duration*(kind==='prices'?2.15:1.55);
+    const stagger=t*.5/Math.max(1,nodes.length-1);
+    const slide=(x,y)=>[{opacity:0,transform:`translate(${x}px,${y}px)`},{opacity:1,transform:'none'}];
+    nodes.forEach((node,i)=>{
+      const delay=i*stagger;
+      if(kind==='prices' && node.classList.contains('service-row')){
+        // The label leads, the actual (unchanged) price rolls into place, then settles.
+        play(node,slide(0,4),t*.35,delay);
+        const label=node.querySelector('.service-name'),price=node.querySelector('.service-price');
+        if(label)play(label,slide(-9,0),t*.42,delay);
+        if(price)play(price,[{opacity:0,transform:'translateY(9px) scale(.94)'},{opacity:1,transform:'translateY(-1px) scale(1.035)',offset:.78},{opacity:1,transform:'none'}],t*.44,delay+t*.08);
+      }else if(node.matches('h2,.signature')){
+        play(node,[{opacity:0,transform:'translateY(9px)'},{opacity:1,transform:'none'}],t*.48,delay);
+      }else if(kind==='hours' && node.matches('dl>div')){
+        play(node,slide(0,6),t*.39,delay);
+        const time=node.querySelector('dd');if(time)play(time,slide(7,0),t*.36,delay+t*.07);
+      }else if(kind==='contact' && node.matches('.shop-phone')){
+        play(node,[{opacity:0,transform:'translateY(8px) scale(.97)'},{opacity:1,transform:'none'}],t*.5,delay);
+      }else{
+        play(node,slide(0,6),t*.42,delay);
+      }
+    });
+    return animations;
   }
   function installCardMotion(){
     if('IntersectionObserver' in window){
@@ -268,7 +294,14 @@
     document.addEventListener('click',e=>{
       const b=control(e);if(!b||b.disabled||b.closest('[inert]'))return;
       clearTimeout(timers.get(b));b.classList.add('malik-activated');
-      timers.set(b,setTimeout(()=>b.classList.remove('malik-activated'),180));
+      timers.set(b,setTimeout(()=>b.classList.remove('malik-activated'),340));
+      if(!reduced.matches && b.animate && !b.matches('.glass-marker,.door-dot')){
+        const target=b.querySelector('.service-price,svg') || b;
+        // Don't fight a running entrance animation on the same content node.
+        if(!target.getAnimations || !target.getAnimations().some(a=>a.playState==='running')){
+          target.animate([{opacity:.78},{opacity:1}],{duration:260,easing:'ease-out'});
+        }
+      }
     },true);
   }
   let bevelPromise=null;
