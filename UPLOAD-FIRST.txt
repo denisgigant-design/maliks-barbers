@@ -1,0 +1,78 @@
+MALIK'S BARBERS — GLASS ATELIER UPGRADE (21 NOV 2026)
+====================================================
+
+This is a ROOT-LEVEL CODE UPDATE for your existing GitHub Pages repository.
+It does NOT replace the tour footage, lighting system or existing photos.
+
+1. Download and UNZIP this package.
+2. In your current Malik's Barbers GitHub repository, go to "Add file" > "Upload files".
+3. Upload the unzipped files directly to the repository ROOT. Choose to replace
+   existing files with the same names. Commit the changes.
+4. Keep all other files already in the repository (especially lighting.js,
+   desktop/mobile footage, JPG scenes and neon sign images). DO NOT delete them.
+5. Refresh with a hard reload if cached images/styles persist.
+
+IMPORTANT: Your original lighting.js and original walking-tour video files are
+not in this package because the latest supplied website-update ZIPs omitted
+those existing production files. They must remain in your existing repository.
+The three pricing-barber media files ARE included to preserve their latest
+Safari/Chrome transparency fallback.
+
+WHAT CHANGED
+------------
+- Three genuinely different, asymmetric transparent frosted glass panels.
+  Opening hours: chamfered octagon, green-tinted lettering.
+  Bookings: shield form, blue/steel highlights.
+  Pricing: asymmetric metal plaque, restrained red accents.
+- Removed ALL raster card images from the live panel DOM. No illustrated barber
+  appears ON any panel. The separate pricing barber still renders IN THE ROOM.
+- Smart docking on desktop moves panels towards the side edges; mobile uses
+  a compact lower panel (pricing biased left to leave the barber more visible).
+- Panels > Glass studio controls blur, opacity and smart-versus-saved positioning,
+  separately per device/action. All options save locally until exported.
+- The existing Panels editor, movable controls, wall signs, timeline, captions,
+  native scroll and preconfigured desktop/mobile barber placement stay intact.
+- A new "Export glass presets" button downloads glass-presets.js. Upload that
+  file to make your chosen glass settings the site defaults for everyone.
+- Desktop-only optional Lenis smoothing; optional GSAP entrance animations;
+  optional Three.js + WebGL + GLSL metallic mark in the footer. These libraries
+  load from pinned free public CDNs when online. The site works without them.
+- Reduced-motion support and low-power/mobile fallbacks built in.
+
+HOW TO CUSTOMIZE
+----------------
+1. Visit the shop and select "Panels".
+2. Choose the panel name (Open hours, Bookings or Pricing).
+3. In "Glass studio" choose Desktop or Mobile and choose Smart dock or Your
+   saved positions. Move the panel in the existing Pop-up card editor when
+   using Your saved positions.
+4. Set blur and opacity. Choose another panel to edit the next one.
+5. Press "EXPORT GLASS PRESETS FOR EVERYONE" and upload the downloaded
+   glass-presets.js file to GitHub root.
+6. If you also move the neon wall signs or the barber himself, export their
+   original panel-presets.js and barber-preset.js separately as before.
+
+FILES THAT REPLACE EXISTING CODE
+--------------------------------
+index.html, shop.css, cards.js, ios-compat.js, wall-tracks.js,
+panel-presets.js, barber-preset.js
+
+NEW FILES
+---------
+glass-upgrade.css, glass-upgrade.js, glass-mark.mjs, glass-presets.js
+
+EXISTING VIDEO FALLBACK FILES INCLUDED
+--------------------------------------
+pricing-barber-transparent.webm, pricing-barber-alpha-packed.mp4,
+pricing-barber-poster.png
+
+CHECKS
+------
+- HTML and JavaScript syntax checked.
+- Chromium integration checks passed against the available saved source code
+  plus a test-only substitute for the missing lighting.js. Both desktop and
+  mobile passed the panel switching, layout, export-controls and tap-dismiss
+  checks. Actual video playback against your live GitHub files was not tested.
+
+This package does not create another Higgsfield website and does not require
+Higgsfield website hosting or Higgsfield credits.

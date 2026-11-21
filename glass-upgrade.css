@@ -1,0 +1,191 @@
+/* MALIK'S BARBERS — GLASS ATELIER / November 21, 2026
+   Layers stay independent: scene -> barber subject -> interactive glass info.
+   No character artwork, illustration, or baked-in raster card content. */
+:root{--mg-gold:#cbb487;--mg-ivory:#fbf7ed;--mg-glass-blur:20px;--mg-glass-opacity:.34}
+html,body{font-synthesis:none}
+#scroller{scroll-behavior:auto;scrollbar-gutter:stable}
+.scene{isolation:isolate}
+#tourNav{z-index:7}
+#pricingBarber{pointer-events:none;z-index:5!important}
+#scenePanel{
+  z-index:8;isolation:isolate;container-type:normal!important;overflow:visible!important;display:grid!important;
+  align-items:center;justify-items:center;pointer-events:none!important;
+  transform-origin:center center;max-width:none;
+}
+#scenePanel[hidden]{display:none!important}
+#scenePanel:focus{outline:0}
+#scenePanel .illustrated-menu{display:none!important}
+.mg-glass{
+  --mg-ink:#f3f4ed;--mg-metal:rgba(217,193,143,.66);--mg-wash:rgba(12,19,18,.34);
+  --mg-spot:rgba(119,214,169,.18);--mg-shape:polygon(7% 0,93% 0,100% 10%,100% 90%,93% 100%,7% 100%,0 90%,0 10%);
+  box-sizing:border-box;position:relative;width:min(100%,420px);max-width:100%;
+  max-height:100%;min-height:0;overflow:hidden;isolation:isolate;
+  display:flex;flex-direction:column;color:var(--mg-ink);
+  clip-path:var(--mg-shape);-webkit-clip-path:var(--mg-shape);
+  background:linear-gradient(138deg,rgba(255,255,255,.63),rgba(186,186,162,.19) 34%,rgba(255,255,255,.08) 58%,rgba(221,199,156,.52) 100%);
+  padding:1.5px;pointer-events:auto;cursor:pointer;
+  text-shadow:0 1px 2px rgba(0,0,0,.32);
+  transform-origin:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+.mg-glass::before{
+ content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+ background:linear-gradient(115deg,transparent 0 32%,rgba(255,255,255,.19) 41%,transparent 57%),
+ linear-gradient(180deg,rgba(255,255,255,.13),transparent 25%,transparent 72%,rgba(255,255,255,.08));
+ opacity:.45;mix-blend-mode:screen;
+}
+.mg-glass::after{
+ content:"";position:absolute;inset:-40% -60%;z-index:2;pointer-events:none;
+ background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,.095) 49%,transparent 58%);
+ transform:translateX(-45%);transition:transform 1s cubic-bezier(.25,.8,.25,1);
+}
+.mg-glass:hover::after{transform:translateX(45%)}
+.mg-glass[hidden]{display:none!important}
+.mg-glass:focus-visible{outline:3px solid white;outline-offset:-8px}
+.mg-glass-inner{
+ box-sizing:border-box;position:relative;z-index:1;width:100%;min-width:0;min-height:0;
+ overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+ clip-path:var(--mg-shape);-webkit-clip-path:var(--mg-shape);
+ background:linear-gradient(158deg,rgba(237,239,216,.055),rgba(3,15,13,0) 45%),
+             rgba(9,17,17,var(--mg-glass-opacity));
+ -webkit-backdrop-filter:blur(var(--mg-glass-blur)) saturate(1.25) brightness(.9);
+ backdrop-filter:blur(var(--mg-glass-blur)) saturate(1.25) brightness(.9);
+ padding:clamp(23px,2vw,35px) clamp(26px,3vw,43px);
+}
+@supports not (backdrop-filter:blur(1px)) {
+ .mg-glass-inner{background:rgba(13,24,22,.88)}
+}
+.mg-glass .mg-ident{
+ display:inline-block;font:650 9px/1.3 system-ui,-apple-system,sans-serif;
+ letter-spacing:.27em;text-transform:uppercase;opacity:.86;
+}
+.mg-glass .mg-ident:before{content:"";display:inline-block;height:1px;width:18px;background:currentColor;vertical-align:middle;margin-right:9px;opacity:.7}
+.mg-glass h2{margin:12px 0 14px;color:#f7f6ec;font:400 clamp(26px,3vw,40px)/1.02 Georgia,'Times New Roman',serif;letter-spacing:-.055em;text-transform:uppercase}
+.mg-glass .mg-rule{height:1px;width:100%;background:linear-gradient(90deg,var(--mg-metal),transparent 94%);opacity:.8;margin-bottom:12px}
+.mg-glass .mg-rows{display:grid;gap:0;margin:0}
+.mg-glass .mg-rows>div{min-width:0;display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid rgba(245,245,225,.13)}
+.mg-glass .mg-rows>div:last-child{border-bottom:0}
+.mg-glass .mg-rows dt{font:500 clamp(11px,.95vw,13px)/1.25 system-ui,sans-serif;letter-spacing:.012em;min-width:0}
+.mg-glass .mg-rows dd{font:650 clamp(11px,1vw,13px)/1.25 system-ui,sans-serif;margin:0;white-space:nowrap;font-variant-numeric:tabular-nums;color:#fcf8e8}
+.mg-glass .mg-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:17px;color:rgba(249,247,231,.75);text-transform:uppercase;letter-spacing:.18em;font:650 9px/1.4 system-ui,sans-serif}
+.mg-glass .mg-footer .mg-diamond{width:6px;height:6px;border:1px solid currentColor;transform:rotate(45deg);display:inline-block}
+.mg-glass .mg-description{font:400 clamp(12px,1.25vw,15px)/1.55 system-ui,sans-serif;letter-spacing:.008em;color:#e1ebed}
+.mg-glass .mg-phone{font:400 clamp(19px,2.5vw,29px)/1.2 Georgia,serif;color:#fffaf2;text-decoration:none;white-space:nowrap;display:inline-block;margin:10px 0 5px}
+.mg-glass .mg-phone:focus-visible,.mg-glass .mg-map:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.mg-glass .mg-address{font:400 clamp(11px,1.1vw,14px)/1.65 system-ui,sans-serif;color:#e4e7e6;margin:12px 0 0;font-style:normal}
+.mg-glass .mg-map{display:inline-block;color:#f4f0df;letter-spacing:.1em;text-decoration:none;border-bottom:1px solid rgba(245,244,229,.45);font:600 10px/1.4 system-ui,sans-serif;padding-bottom:4px;margin-top:10px}
+.mg-glass[data-kind="hours"]{
+ --mg-metal:rgba(143,235,183,.72);--mg-spot:rgba(61,182,120,.16);
+ --mg-shape:polygon(0 11%,12% 0,88% 0,100% 11%,100% 89%,88% 100%,12% 100%,0 89%);
+}
+.mg-glass[data-kind="hours"] .mg-glass-inner{padding-inline:clamp(28px,3.5vw,46px)}
+.mg-glass[data-kind="hours"] h2{color:#c8ffe3}
+.mg-glass[data-kind="hours"] .mg-ident{color:#b1ead3}
+.mg-glass[data-kind="contact"]{
+ --mg-metal:rgba(155,202,235,.72);--mg-shape:polygon(0 0,84% 0,100% 12%,100% 79%,57% 100%,0 79%);
+}
+.mg-glass[data-kind="contact"] .mg-glass-inner{padding-bottom:clamp(58px,8vw,72px);padding-inline:clamp(24px,3vw,42px)}
+.mg-glass[data-kind="contact"] h2{color:#d4eaff}
+.mg-glass[data-kind="contact"] .mg-ident{color:#a7d7f6}
+.mg-glass[data-kind="prices"]{
+ --mg-metal:rgba(242,156,153,.72);--mg-shape:polygon(11% 0,100% 0,100% 87%,89% 100%,0 100%,0 13%);
+}
+.mg-glass[data-kind="prices"] .mg-glass-inner{padding-inline:clamp(26px,3.2vw,43px);padding-top:clamp(28px,3vw,38px);padding-bottom:clamp(26px,2.6vw,36px)}
+.mg-glass[data-kind="prices"] h2{color:#ffe0df}
+.mg-glass[data-kind="prices"] .mg-ident{color:#f3b8b5}
+.mg-glass[data-kind="prices"] dd{color:#ffe1da}
+.mg-glass .mg-row-today{color:#bff2d5}
+/* User's independent barber animation remains part of the scene, never a child of a glass panel. */
+#scenePanel:has(.mg-glass) > img{display:none!important}
+/* SMART DESKTOP: slim shoulder drawers. Centre of the barbershop stays visible.
+   Explicitly selected authored placement still uses the original, published editor geometry. */
+@media(min-width:701px){
+ html.mg-smart #scenePanel[data-action="hours"]{
+  width:min(350px,32%)!important;height:auto!important;min-height:0!important;
+  left:auto!important;right:2.6%!important;top:50%!important;bottom:auto!important;
+  translate:0 -50%!important;
+ }
+ html.mg-smart #scenePanel[data-action="contact"],html.mg-smart #scenePanel[data-action="prices"]{
+  width:min(370px,34%)!important;height:auto!important;min-height:0!important;
+  left:2.6%!important;right:auto!important;top:50%!important;bottom:auto!important;
+  translate:0 -50%!important;
+ }
+ html.mg-smart #scenePanel .mg-glass{width:100%}
+}
+/* MOBILE: low, compact sweep-up cards; stand away from Malik on the right in Pricing.
+   The actual scene stays visible in the upper half, with one-column reading. */
+@media(max-width:700px){
+ html.mg-smart #scenePanel[data-action]{
+  width:min(82%,336px)!important;height:auto!important;max-height:min(51%,420px)!important;
+  left:9%!important;right:auto!important;top:auto!important;bottom:2%!important;
+  translate:0 0!important;transform:none!important;
+ }
+ html.mg-smart #scenePanel[data-action="prices"]{
+  width:min(70%,280px)!important;left:2%!important;max-height:min(64%,490px)!important;
+ }
+ html.mg-smart #scenePanel[data-action="contact"]{width:min(85%,340px)!important;left:13%!important;}
+ html.mg-smart #scenePanel[data-action="hours"]{left:6%!important;}
+ .mg-glass{width:100%;max-height:inherit}
+ .mg-glass-inner{padding:19px 25px!important}
+ .mg-glass[data-kind="prices"] .mg-glass-inner{padding:21px 21px 20px 26px!important}
+ .mg-glass[data-kind="contact"] .mg-glass-inner{padding:20px 22px 48px!important}
+ .mg-glass .mg-ident{font-size:8px;letter-spacing:.16em}
+ .mg-glass h2{font-size:clamp(24px,6.3vw,32px);margin:8px 0 11px}
+ .mg-glass .mg-rows>div{padding:5.5px 0;gap:6px}
+ .mg-glass .mg-rows dt,.mg-glass .mg-rows dd{font-size:clamp(9px,2.5vw,12px)}
+ .mg-glass .mg-footer{font-size:8px;margin-top:11px}
+ .mg-glass[data-kind="prices"] .mg-footer{margin-top:7px}
+ .mg-glass .mg-description{font-size:12px}
+ .mg-glass .mg-phone{font-size:22px}
+ .mg-glass .mg-address{font-size:11px}
+}
+@media (max-width:390px){.mg-glass .mg-rows>div{padding:4px 0}.mg-glass .mg-footer{margin-top:7px}}
+/* Existing panels and editing tools: sober translucent glass and proper contrast. */
+#panelEditor,#panel,#cardsPanel{
+ background:rgba(15,25,23,.62)!important;
+ border:1px solid rgba(210,195,163,.52)!important;
+ -webkit-backdrop-filter:blur(23px) saturate(1.18)!important;
+ backdrop-filter:blur(23px) saturate(1.18)!important;
+ box-shadow:0 16px 48px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.13)!important;
+}
+#panelEditor select,#panelEditor textarea,#panelEditor input:not([type=range]):not([type=color]),
+#panel button,#cardsPanel button{
+ background:rgba(20,39,33,.38);border:1px solid rgba(237,223,194,.24);
+ -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+#panelEditor .pe-actions button,.editor-dock button{
+ background:rgba(41,65,55,.3)!important;border-color:rgba(213,187,139,.48)!important;
+}
+#panelEditor .pe-actions button:last-child{background:rgba(213,180,119,.76)!important;color:#0f2119!important}
+.mg-editor fieldset{border:0;border-top:1px solid rgba(234,215,173,.32);padding:7px 0 0;margin:15px 0 0}
+.mg-editor legend{font:700 12px system-ui,sans-serif;color:#f7e9c8;padding-right:7px}
+.mg-editor label{display:block;margin-top:10px}
+.mg-editor .mg-editor-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.mg-editor select{width:100%;min-width:0;background:rgba(16,38,29,.65)}
+.mg-editor output{font-size:12px;font-variant-numeric:tabular-nums}
+.mg-editor input[type=range]{accent-color:#d3bd94}
+.mg-editor .mg-export{width:100%;padding:10px 12px;background:rgba(204,174,119,.8);color:#11271d;border:1px solid #e1c997;cursor:pointer;font-size:12px;font-weight:750;margin-top:12px}
+.mg-editor .mg-sub{font:11px/1.5 system-ui,sans-serif;color:#ded4bd;margin:8px 0}
+/* Independent original cards stay as drafts in their editor only. */
+.editing-cards .info-card{background:rgba(15,27,25,.3);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+/* Compact customer-facing informational sections, not uniform rectangles. */
+.shop-details{gap:clamp(18px,3vw,32px);padding-bottom:54px}
+.shop-details .shop-card{
+ width:min(92%,750px);background:rgba(10,29,24,.4)!important;
+ -webkit-backdrop-filter:blur(21px) saturate(1.2);backdrop-filter:blur(21px) saturate(1.2);
+ border:1px solid rgba(215,191,140,.45);border-radius:0;
+ box-shadow:0 24px 50px rgba(0,0,0,.18);padding:clamp(32px,5vw,54px);
+}
+.shop-details #prices{clip-path:polygon(6% 0,100% 0,100% 91%,94% 100%,0 100%,0 10%);padding-left:clamp(43px,6vw,70px)}
+.shop-details #hours{clip-path:polygon(0 7%,8% 0,92% 0,100% 7%,100% 93%,92% 100%,8% 100%,0 93%)}
+.shop-details #contact{clip-path:polygon(0 0,91% 0,100% 9%,100% 88%,76% 100%,0 100%);padding-bottom:clamp(45px,6vw,75px)}
+.shop-details .shop-card::before{opacity:.3;height:2px}
+.shop-details .shop-card h2{letter-spacing:-.048em}
+/* Small, optional WebGL/GLSL polished-monogram on the footer, not covering footage. */
+.mg-mark{width:51px;height:51px;flex:0 0 51px;display:grid;place-items:center;position:relative;isolation:isolate;pointer-events:none;opacity:.68}
+.mg-mark canvas{display:block;width:51px;height:51px}
+.mg-mark .mg-mark-fallback{position:absolute;inset:0;display:grid;place-items:center;color:#c8b48e;font:500 20px Georgia,serif;letter-spacing:-.08em;opacity:.7}
+.mg-mark.is-webgl .mg-mark-fallback{display:none}
+.pill{border-radius:30px;background:rgba(18,37,30,.36)!important;border:1px solid rgba(234,223,200,.28)!important;-webkit-backdrop-filter:blur(15px);backdrop-filter:blur(15px)}
+@media(max-width:700px){.mg-mark{display:none}.shop-details .shop-card{width:min(94%,620px);padding:25px 27px}.shop-details #prices{padding-left:32px}.shop-details #contact{padding-bottom:42px}}
+@media(prefers-reduced-motion:reduce){.mg-glass,.mg-glass::after,.shop-card{transition:none!important;animation:none!important}}
